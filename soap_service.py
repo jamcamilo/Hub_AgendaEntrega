@@ -153,10 +153,10 @@ class SeniorSoapService:
                 self.debug.last_error = fault
                 raise Exception(fault)
 
-            # Detecta erroExecucao no corpo da resposta (Senior retorna HTTP 200 com erro)
-            if "erroExecucao" in resp.text:
-                m = re.search(r"<erroExecucao[^>]*>(.*?)</erroExecucao>", resp.text, re.S | re.I)
-                erro = m.group(1).strip() if m else "Erro de execução Senior"
+            # Detecta erroExecucao com conteúdo (ignora tags vazias/self-closing)
+            m = re.search(r"<erroExecucao[^/>]*>([^<]+)</erroExecucao>", resp.text, re.S | re.I)
+            if m:
+                erro = m.group(1).strip()
                 if erro:
                     self.debug.last_error = erro
                     raise Exception(erro)
