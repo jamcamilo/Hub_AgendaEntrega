@@ -25,6 +25,23 @@ app.config.update(
 
 SOAP_ENDPOINT = "https://ocweb08s1p.seniorcloud.com.br:30991/g5-senior-services/sapiens_SyncSuply"
 
+# Guarda o debug da última chamada SOAP feita por qualquer rota.
+# (precisa ser global porque cada rota cria uma instância nova de SeniorSoapService)
+LAST_DEBUG = {
+    "lastRequest": "", "lastResponse": "", "lastError": "", "lastStatus": 0, "lastMs": 0,
+}
+
+
+def _save_debug(soap: SeniorSoapService) -> None:
+    d = soap.debug
+    LAST_DEBUG.update({
+        "lastRequest":  d.last_request,
+        "lastResponse": d.last_response,
+        "lastError":    d.last_error,
+        "lastStatus":   d.last_status,
+        "lastMs":       d.last_ms,
+    })
+
 
 def get_soap() -> SeniorSoapService:
     """Cria SoapService com credenciais da sessão do usuário."""
@@ -67,16 +84,21 @@ def login():
     soap = get_soap()
     try:
         soap.listar_ordens(dat_ini="01/01/2000", dat_fim="01/01/2000")
+        _save_debug(soap)
         return jsonify({"ok": True, "user": user})
     except Exception as e:
+        _save_debug(soap)
         err = str(e)
         # Se o erro for de autenticação, limpa a sessão
         if "senha" in err.lower() or "password" in err.lower() or "autenticação" in err.lower() or "401" in err:
             session.pop("soap_user", None)
             session.pop("soap_pass", None)
             return jsonify({"ok": False, "error": "Usuário ou senha inválidos."}), 401
-        # Outros erros (ex: sem dados no range) = login ok, só sem dados
-        return jsonify({"ok": True, "user": user})
+        # Qualquer outro erro (conexão, timeout, fault) também é falha de login —
+        # não presumimos sucesso silenciosamente. Use /api/debug para ver o detalhe.
+        session.pop("soap_user", None)
+        session.pop("soap_pass", None)
+        return jsonify({"ok": False, "error": f"Não foi possível conectar ao Senior: {err}"}), 502
 
 
 @app.route("/api/logout", methods=["POST"])
@@ -107,8 +129,10 @@ def get_orders():
     soap = get_soap()
     try:
         orders = soap.listar_ordens(dat_ini, dat_fim)
+        _save_debug(soap)
         return jsonify([o.to_dict() for o in orders])
     except Exception as e:
+        _save_debug(soap)
         return jsonify({"error": str(e)}), 502
 
 
@@ -136,8 +160,10 @@ def save_changes():
             continue
         try:
             soap.atualizar_data_entrega(oid, emp, fil, old_date, new_date, chave_nfe, observacao)
+            _save_debug(soap)
             results.append({"orderId": oid, "ok": True})
         except Exception as e:
+            _save_debug(soap)
             results.append({"orderId": oid, "ok": False, "error": str(e)})
 
     ok_count   = sum(1 for r in results if r["ok"])
@@ -147,15 +173,7 @@ def save_changes():
 
 @app.route("/api/debug", methods=["GET"])
 def get_debug():
-    soap = get_soap()
-    d = soap.debug
-    return jsonify({
-        "lastRequest":  d.last_request,
-        "lastResponse": d.last_response,
-        "lastError":    d.last_error,
-        "lastStatus":   d.last_status,
-        "lastMs":       d.last_ms,
-    })
+    return jsonify(LAST_DEBUG)
 
 
 # ── Iniciar ────────────────────────────────────────────────
