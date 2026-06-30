@@ -1632,3 +1632,10 @@
   }
 
   .cal-toolbar { flex-wrap: wrap; gap: 8px; }
+
+  /* Override Volt auth brand to dark theme */
+  .auth__brand {
+    background: linear-gradient(180deg, #0a1628 0%, #032839 100%) !important;
+  }
+  .auth__blob { background: rgba(59,78,255,.08) !important; }
+  .auth__blob--2 { background: rgba(59,78,255,.05) !important; }
