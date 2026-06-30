@@ -1,138 +1,229 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Agenda de Entregas</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
-<link rel="stylesheet" href="{{ url_for('static', filename='css/site.css') }}">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Agenda de Entregas · Calendário de Ordens de Compra</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet" />
+  <link rel="stylesheet" href="/static/css/volt.css" />
+  <link rel="stylesheet" href="/static/css/templates.css" />
+  <link rel="stylesheet" href="/static/css/site.css?v=40">
 </head>
 <body>
 
-<!-- ── Tela de Login ─────────────────────────────────────── -->
-<div id="loginScreen" class="auth">
+<!-- LOGIN (Volt auth pattern) -->
+<div class="auth" id="login-overlay" style="position:fixed;inset:0;z-index:10000;transition:opacity 0.3s;">
   <div class="auth__brand">
-    <div class="auth__brand-logo"><span class="material-icons">local_shipping</span>Agenda de Entregas</div>
+    <div class="auth__blob auth__blob--1"></div>
+    <div class="auth__blob auth__blob--2"></div>
+    <div class="auth__brand-logo"><div class="ic"><span class="material-icons">local_shipping</span></div>Agenda de Entregas</div>
     <div class="auth__brand-content">
-      <h2>Gestão visual de Ordens de Compra</h2>
-      <p>Integração direta com o Senior ERP via SOAP — acompanhe, reagende e confirme entregas em um só lugar.</p>
+      <h2>Gerencie suas<br>entregas com<br>eficiência.</h2>
+      <p>Calendário visual de ordens de compra integrado ao ERP Senior — drag & drop, distribuição de itens e gestão de docas.</p>
+      <div class="auth__brand-points">
+        <div class="auth__brand-point"><div class="ic2"><span class="material-icons">calendar_month</span></div>Calendário drag & drop</div>
+        <div class="auth__brand-point"><div class="ic2"><span class="material-icons">inventory_2</span></div>Distribuição de itens</div>
+        <div class="auth__brand-point"><div class="ic2"><span class="material-icons">warehouse</span></div>Gestão de docas</div>
+      </div>
     </div>
-    <div class="auth__brand-foot">Integração Senior · sapiens_SyncSuply</div>
+    <div class="auth__brand-foot">© 2026 Agenda de Entregas · ERP Senior</div>
   </div>
   <div class="auth__form">
     <div class="auth__card">
       <h1 class="auth__title">Entrar</h1>
-      <p class="auth__subtitle">Use seu usuário do Senior ERP</p>
-      <form id="loginForm">
-        <div class="field">
-          <label for="loginUser">Usuário</label>
-          <input id="loginUser" type="text" autocomplete="username" required>
+      <p class="auth__subtitle">Acesse com suas credenciais Senior.</p>
+      <div id="login-error" class="volt-badge volt-badge--error" style="display:none;width:100%;margin-bottom:16px;padding:10px 12px;font-size:12px;"></div>
+      <div class="volt-field auth__field">
+        <label class="volt-field__label">Usuário</label>
+        <input class="volt-field__input" id="login-user" type="text" placeholder="usuario.ext" autocomplete="username" />
+      </div>
+      <div class="volt-field auth__field">
+        <label class="volt-field__label">Senha</label>
+        <div class="auth__pass">
+          <input class="volt-field__input" id="login-pass" type="password" placeholder="••••••••" autocomplete="current-password" />
         </div>
-        <div class="field">
-          <label for="loginPass">Senha</label>
-          <input id="loginPass" type="password" autocomplete="current-password" required>
-        </div>
-        <div id="loginError" class="alert alert--error" style="display:none"></div>
-        <button type="submit" class="btn btn--primary" style="width:100%;justify-content:center" id="loginBtn">Entrar</button>
-      </form>
+      </div>
+      <button class="volt-btn volt-btn--primary auth__btn" id="login-btn" type="button" onclick="doLogin()">Entrar</button>
+      <div style="text-align:center;margin-top:16px;">
+        <a href="/" class="auth__link">← Voltar ao início</a>
+      </div>
     </div>
   </div>
 </div>
 
-<!-- ── Aplicação ─────────────────────────────────────────── -->
-<div id="appScreen" class="app" style="display:none">
-  <aside class="sidebar">
-    <div class="sidebar__top">
-      <div class="sidebar__logo"><span class="material-icons">bolt</span>Senior Hub</div>
+<!-- HEADER -->
+<header class="header">
+  <div class="logo">
+    <div class="logo-icon">🚚</div>
+    <span>Agenda de Entregas</span>
+  </div>
+  <div class="header-actions">
+    <div class="status-dot" title="Conectado"></div>
+    <div id="save-bar" style="display:none;align-items:center;gap:8px;">
+      <button id="save-btn" class="btn btn-save" onclick="saveAllChanges()">💾 Salvar</button>
+      <button class="btn btn-ghost btn-discard" onclick="discardAllChanges()">✕ Descartar</button>
     </div>
-    <div class="sidebar__user">
-      <div class="sidebar__avatar" id="userInitials">--</div>
-      <div>
-        <div class="sidebar__user-name" id="userName">—</div>
-        <div class="sidebar__user-role">Fornecedor</div>
+    <button class="btn btn-ghost" onclick="openDebug()">🔍 Debug</button>
+    <button class="btn btn-ghost" onclick="loadOrders()">↻ Atualizar</button>
+    <button class="btn btn-ghost" id="toggle-sidebar-btn" onclick="toggleSidebar()" title="Mostrar/ocultar painel">☰</button>
+    <!-- User info -->
+    <div class="user-badge" id="user-badge" style="display:none;">
+      <span id="user-name"></span>
+      <button class="user-logout" onclick="doLogout()" title="Sair">↪</button>
+    </div>
+  </div>
+</header>
+
+<!-- GHOST DRAG -->
+<div id="drag-ghost">
+  <span class="ghost-truck">🚚</span>
+  <div>
+    <div class="ghost-id" id="ghost-id"></div>
+    <div class="ghost-name" id="ghost-name"></div>
+  </div>
+</div>
+
+<!-- LAYOUT -->
+<div class="layout">
+
+  <!-- CALENDAR -->
+  <main class="calendar-area">
+    <div class="cal-toolbar">
+      <div class="cal-nav">
+        <button class="nav-btn" onclick="prevMonth()">‹</button>
+        <h2 class="cal-title" id="cal-title"></h2>
+        <button class="nav-btn" onclick="nextMonth()">›</button>
       </div>
+      <button class="btn btn-ghost today-btn" onclick="goToday()">Hoje</button>
+      <!-- View tabs -->
+      <div class="view-tabs">
+        <button class="view-tab active" id="tab-calendar" onclick="switchView('calendar')">📅 Calendário</button>
+        <button class="view-tab" id="tab-docks" onclick="switchView('docks')">🏭 Docas</button>
+      </div>
+      <!-- Filtros -->
+      <select id="filter-tipmer" class="filter-select" onchange="applyFilters()">
+        <option value="">Tipo Mercadoria: Todos</option>
+      </select>
+      <select id="filter-desori" class="filter-select" onchange="applyFilters()">
+        <option value="">Origem: Todos</option>
+      </select>
+      <select id="filter-sitipo" class="filter-select" onchange="applyFilters()">
+        <option value="">Situação: Todos</option>
+      </select>
+      <select id="filter-nomusu" class="filter-select" onchange="applyFilters()">
+        <option value="">Usuário: Todos</option>
+      </select>
+      <select id="filter-fil" class="filter-select" onchange="applyFilters()">
+        <option value="">Filial: Todos</option>
+      </select>
+      <select id="filter-coddep" class="filter-select" onchange="applyFilters()">
+        <option value="">Depósito: Todos</option>
+      </select>
     </div>
-    <div class="navitem active"><span class="material-icons">calendar_month</span>Agenda de Entregas</div>
-    <div class="navitem" id="navDebug"><span class="material-icons">bug_report</span>Debug SOAP</div>
-    <div class="sidebar__divider"></div>
-    <div class="navitem" id="logoutBtn"><span class="material-icons">logout</span>Sair</div>
+    <div class="cal-grid-wrap" id="view-calendar">
+      <div class="cal-grid" id="cal-grid"></div>
+    </div>
+    <div class="docks-wrap" id="view-docks" style="display:none;">
+      <div class="docks-container" id="docks-container"></div>
+    </div>
+  </main>
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      Ordens de Compra
+      <span class="badge" id="order-count">0</span>
+    </div>
+    <div style="padding:10px 12px 0;">
+      <input id="sidebar-search" class="config-url" placeholder="🔍 Buscar OC, fornecedor, produto..." oninput="renderSidebar()" style="width:100%;font-size:12px;" />
+    </div>
+
+    <!-- Pending changes panel -->
+    <div id="pending-panel" class="pending-panel" style="display:none;margin:10px 12px 0;"></div>
+
+    <div class="orders-list" id="orders-list"></div>
+
+    <div class="config-panel" style="flex-direction:column;align-items:stretch;gap:4px;padding:14px 16px;">
+      <div style="font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--text-faint);">Senior SOAP</div>
+      <div style="font-size:10px;color:var(--accent);font-family:'DM Mono',monospace;padding:4px 8px;background:var(--bg);border-radius:4px;border:1px solid var(--border);">sapiens_SyncSuply · ListarOrdensResponse</div>
+    </div>
   </aside>
 
-  <div class="main">
-    <header class="navbar">
-      <div>
-        <div class="navbar__title">Agenda de Entregas</div>
-        <div class="navbar__subtitle">Calendário de Ordens de Compra</div>
-      </div>
-      <div class="navbar__spacer"></div>
-      <button class="btn btn--icon" id="refreshBtn" title="Atualizar"><span class="material-icons">refresh</span></button>
-      <button class="btn btn--outline" id="saveBtn"><span class="material-icons" style="font-size:17px">save</span>Salvar alterações</button>
-    </header>
+</div>
 
-    <div class="content">
-      <div class="toolbar">
-        <div class="month-switch">
-          <button id="prevMonth"><span class="material-icons">chevron_left</span></button>
-          <div class="month-switch__label" id="monthLabel">—</div>
-          <button id="nextMonth"><span class="material-icons">chevron_right</span></button>
-        </div>
-        <button class="btn btn--outline" id="todayBtn" style="height:36px;font-size:12.5px;">Hoje</button>
-        <div id="statusMsg" class="chip chip--info" style="display:none"></div>
-        <div class="legend">
-          <span><span class="dot" style="background:var(--info-500)"></span>Aberta</span>
-          <span><span class="dot" style="background:var(--warning-500)"></span>Em andamento</span>
-          <span><span class="dot" style="background:var(--success-500)"></span>Concluída</span>
-        </div>
-      </div>
+<!-- TOASTS -->
+<div class="toast-container" id="toasts"></div>
 
-      <div class="cal">
-        <div class="cal__dow"><div>Dom</div><div>Seg</div><div>Ter</div><div>Qua</div><div>Qui</div><div>Sex</div><div>Sáb</div></div>
-        <div class="cal__grid" id="calGrid"></div>
-      </div>
+<!-- DAY MODAL -->
+<div class="modal-overlay" id="day-modal">
+  <div class="modal" style="width:520px;max-height:80vh;display:flex;flex-direction:column;">
+    <div class="modal-title" id="day-modal-title">🚚 Ordens do dia</div>
+    <div id="day-modal-list" style="flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:8px;padding-right:4px;"></div>
+    <div class="modal-actions" style="margin-top:16px;">
+      <button class="btn btn-ghost" onclick="closeDayModal()">Fechar</button>
     </div>
   </div>
 </div>
 
-<!-- ── Modal Debug ───────────────────────────────────────── -->
-<div id="debugModal" class="modal-backdrop" style="display:none">
-  <div class="modal">
-    <div class="modal__head">
-      <div class="modal__title">Debug — última chamada SOAP</div>
-      <button class="btn btn--icon" id="closeDebug"><span class="material-icons">close</span></button>
-    </div>
-    <div class="modal__body">
-      <pre id="debugContent">Carregando...</pre>
-    </div>
-  </div>
-</div>
-
-<!-- ── Modal Detalhe da OC ───────────────────────────────── -->
-<div id="orderModal" class="modal-backdrop" style="display:none">
-  <div class="modal">
-    <div class="modal__head">
-      <div class="modal__title">Reagendar entrega</div>
-      <button class="btn btn--icon" id="closeOrderModal"><span class="material-icons">close</span></button>
-    </div>
-    <div class="modal__body">
-      <p><b id="omId"></b> — <span id="omSupplier"></span></p>
-      <div class="field">
-        <label>Nova data de entrega</label>
-        <input type="date" id="omNewDate">
-      </div>
-      <div class="field">
-        <label>Observação</label>
-        <input type="text" id="omObs" placeholder="Motivo da alteração (opcional)">
-      </div>
-    </div>
-    <div class="modal__foot">
-      <button class="btn btn--outline" id="omCancel">Cancelar</button>
-      <button class="btn btn--primary" id="omConfirm">Confirmar alteração</button>
+<!-- ITEMS MODAL (itensOC - quebra de quantidades) -->
+<div class="modal-overlay" id="items-modal">
+  <div class="modal" style="width:720px;max-height:85vh;display:flex;flex-direction:column;">
+    <div class="modal-title" id="items-modal-title">📦 Itens da Ordem de Compra</div>
+    <div id="items-modal-body" style="flex:1;overflow-y:auto;"></div>
+    <div class="modal-actions" style="margin-top:16px;display:flex;justify-content:space-between;align-items:center;">
+      <button class="btn btn-ghost" onclick="closeItemsModal()">Fechar</button>
+      <button class="btn btn-save" id="items-save-btn" onclick="saveItemsDistribution()" style="animation:none;font-size:14px;padding:10px 24px;">📦 Salvar distribuição</button>
     </div>
   </div>
 </div>
 
-<script src="{{ url_for('static', filename='js/app.js') }}"></script>
+<!-- MOVE CONFIRMATION MODAL -->
+<div class="modal-overlay" id="move-modal">
+  <div class="modal" style="width:440px;">
+    <div class="modal-title">🚚 Confirmar movimentação</div>
+    <div id="move-modal-info" class="ctx-order-info" style="margin-bottom:16px;"></div>
+    <div class="login-field">
+      <label class="login-label">Chave NFe (44 dígitos) — opcional</label>
+      <input class="login-input" id="move-chave" type="text" maxlength="44" placeholder="00000000000000000000000000000000000000000000" style="font-family:'DM Mono',monospace;font-size:12px;letter-spacing:1px;" />
+      <div id="move-chave-error" class="login-error" style="display:none;margin-top:6px;margin-bottom:0;"></div>
+    </div>
+    <div class="login-field">
+      <label class="login-label">Observação — opcional</label>
+      <textarea class="login-input" id="move-obs" rows="3" placeholder="Motivo da alteração, informações adicionais..." style="resize:vertical;"></textarea>
+    </div>
+    <div class="ctx-actions" style="margin-top:8px;">
+      <button class="ctx-btn ctx-btn-cancel" onclick="closeMoveModal()">Cancelar</button>
+      <button class="ctx-btn ctx-btn-confirm" onclick="confirmMove()">✓ Confirmar</button>
+    </div>
+  </div>
+</div>
+
+<!-- DEBUG PANEL -->
+<div class="debug-overlay" id="debug-overlay">
+  <div class="debug-panel">
+    <div class="debug-header">
+      <div class="debug-title">
+        🔍 Debug SOAP
+        <span class="debug-status pending" id="dbg-status">Aguardando...</span>
+      </div>
+      <button class="debug-close" onclick="closeDebug()">✕</button>
+    </div>
+    <div class="debug-tabs">
+      <button class="debug-tab active" onclick="switchDebugTab('request',this)">↑ Request</button>
+      <button class="debug-tab"        onclick="switchDebugTab('response',this)">↓ Response</button>
+      <button class="debug-tab"        onclick="switchDebugTab('error',this)">⚠ Erro</button>
+    </div>
+    <div class="debug-body">
+      <div id="debug-tab-request"><pre class="debug-code request-text" id="dbg-request">—</pre></div>
+      <div id="debug-tab-response" style="display:none"><pre class="debug-code" id="dbg-response">—</pre></div>
+      <div id="debug-tab-error" style="display:none"><pre class="debug-code error-text" id="dbg-error">—</pre></div>
+    </div>
+  </div>
+</div>
+
+<script src="/static/js/app.js?v=40"></script>
 </body>
 </html>

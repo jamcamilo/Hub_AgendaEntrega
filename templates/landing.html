@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Agenda de Entregas</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet" />
+<link rel="stylesheet" href="/static/css/volt.css" />
+<link rel="stylesheet" href="/static/css/templates.css" />
+<style>
+  * { box-sizing: border-box; } body { margin: 0; }
+  .landing { display: grid; grid-template-columns: 1.05fr 1fr; min-height: 100vh; font-family: var(--font); }
+
+  .landing__brand {
+    background: linear-gradient(150deg, rgba(47,63,202,.80), rgba(3,40,57,.90));
+    color: #fff; padding: 56px; display: flex; flex-direction: column; justify-content: space-between;
+    position: relative; overflow: hidden;
+  }
+  .landing__blob { position: absolute; border-radius: 50%; background: rgba(255,255,255,.07); pointer-events: none; }
+  .landing__blob--1 { width: 340px; height: 340px; top: -90px; right: -80px; }
+  .landing__blob--2 { width: 220px; height: 220px; bottom: -60px; left: -50px; background: rgba(255,255,255,.05); }
+  .landing__brand > *:not(.landing__blob) { position: relative; z-index: 1; }
+  .landing__logo { display: flex; align-items: center; gap: 12px; font-size: 18px; font-weight: 800; }
+  .landing__logo .ic { width: 42px; height: 42px; border-radius: 12px; background: rgba(255,255,255,.16); display: flex; align-items: center; justify-content: center; }
+  .landing__logo .ic .material-icons { font-size: 24px; }
+  .landing__content h2 { font-size: 34px; font-weight: 800; line-height: 1.2; margin: 0 0 14px; letter-spacing: -.6px; }
+  .landing__content p { font-size: 15px; color: rgba(255,255,255,.82); line-height: 1.6; max-width: 430px; margin: 0; }
+  .landing__points { display: flex; flex-direction: column; gap: 14px; margin-top: 32px; }
+  .landing__point { display: flex; align-items: center; gap: 12px; font-size: 14px; font-weight: 600; }
+  .landing__point .ic2 { width: 30px; height: 30px; border-radius: 9px; background: rgba(255,255,255,.16); display: flex; align-items: center; justify-content: center; flex: none; }
+  .landing__point .ic2 .material-icons { font-size: 17px; }
+  .landing__foot { font-size: 12px; color: rgba(255,255,255,.55); }
+
+  .landing__choose {
+    display: flex; align-items: center; justify-content: center;
+    padding: 40px; background: var(--gray-075);
+  }
+  .landing__inner { width: 100%; max-width: 420px; text-align: center; }
+  .landing__title { font-family: var(--font); font-size: 26px; font-weight: 800; margin: 0 0 6px; letter-spacing: -.4px; color: var(--text); }
+  .landing__sub { font-family: var(--font); font-size: 14px; color: var(--text-secondary); margin: 0 0 32px; }
+
+  .landing__cards { display: flex; flex-direction: column; gap: 14px; }
+  .landing__card {
+    display: flex; align-items: center; gap: 16px;
+    background: #fff; border: 1px solid var(--gray-100); border-radius: var(--radius-lg);
+    padding: 22px 20px; text-decoration: none; color: var(--text);
+    transition: all .2s ease; box-shadow: var(--shadow-sm);
+    text-align: left;
+  }
+  .landing__card:hover {
+    border-color: var(--primary-300); box-shadow: var(--shadow-md);
+    transform: translateY(-2px);
+  }
+  .landing__card-icon {
+    width: 50px; height: 50px; border-radius: 14px;
+    display: flex; align-items: center; justify-content: center; flex: none;
+  }
+  .landing__card-icon .material-icons { font-size: 26px; color: #fff; }
+  .landing__card-icon--agenda { background: var(--primary-500); }
+  .landing__card-icon--forn { background: var(--success-500); }
+  .landing__card-info h3 { font-family: var(--font); font-size: 16px; font-weight: 700; margin: 0 0 4px; }
+  .landing__card-info p { font-family: var(--font); font-size: 13px; color: var(--text-secondary); margin: 0; line-height: 1.4; }
+  .landing__card .arrow { margin-left: auto; color: var(--gray-300); font-size: 22px; transition: color .15s; }
+  .landing__card:hover .arrow { color: var(--primary-500); }
+
+  @media (max-width: 860px) {
+    .landing { grid-template-columns: 1fr; }
+    .landing__brand { display: none; }
+  }
+</style>
+</head>
+<body>
+<div class="landing">
+  <!-- Brand panel -->
+  <div class="landing__brand">
+    <div class="landing__blob landing__blob--1"></div>
+    <div class="landing__blob landing__blob--2"></div>
+    <div class="landing__logo"><div class="ic"><span class="material-icons">local_shipping</span></div>Agenda de Entregas</div>
+    <div class="landing__content">
+      <h2>Gerencie suas<br>entregas com<br>eficiência.</h2>
+      <p>Calendário visual de ordens de compra, distribuição de itens por data, gestão de docas e portal do fornecedor — tudo integrado ao ERP Senior.</p>
+      <div class="landing__points">
+        <div class="landing__point"><div class="ic2"><span class="material-icons">calendar_month</span></div>Calendário drag & drop</div>
+        <div class="landing__point"><div class="ic2"><span class="material-icons">inventory_2</span></div>Distribuição de itens por data</div>
+        <div class="landing__point"><div class="ic2"><span class="material-icons">warehouse</span></div>Gestão de docas e horários</div>
+        <div class="landing__point"><div class="ic2"><span class="material-icons">storefront</span></div>Portal do fornecedor</div>
+      </div>
+    </div>
+    <div class="landing__foot">© 2026 Agenda de Entregas · Integrado ao ERP Senior</div>
+  </div>
+
+  <!-- Choose panel -->
+  <div class="landing__choose">
+    <div class="landing__inner">
+      <h1 class="landing__title">Selecione o acesso</h1>
+      <p class="landing__sub">Escolha como deseja acessar o sistema.</p>
+
+      <div class="landing__cards">
+        <a href="/agenda" class="landing__card">
+          <div class="landing__card-icon landing__card-icon--agenda">
+            <span class="material-icons">calendar_month</span>
+          </div>
+          <div class="landing__card-info">
+            <h3>Agenda Interna</h3>
+            <p>Calendário de OCs, distribuição de itens, gestão de docas e retorno ao ERP</p>
+          </div>
+          <span class="material-icons arrow">chevron_right</span>
+        </a>
+
+        <a href="/fornecedor" class="landing__card">
+          <div class="landing__card-icon landing__card-icon--forn">
+            <span class="material-icons">storefront</span>
+          </div>
+          <div class="landing__card-info">
+            <h3>Portal do Fornecedor</h3>
+            <p>Consulte suas ordens de compra e agende data, horário e veículo de entrega</p>
+          </div>
+          <span class="material-icons arrow">chevron_right</span>
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

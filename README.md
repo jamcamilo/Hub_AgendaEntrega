@@ -1,26 +1,56 @@
-# FreightBoard — Flask + Senior SOAP (Python)
+# 🚚 Agenda de Entregas
 
-Interface web para gestão visual de Ordens de Compra via SOAP Senior.
+Interface web para gestão de Ordens de Compra integrada ao ERP Senior via SOAP.
 
-## 📋 Pré-requisitos
-
-- **Python 3.10+** (https://www.python.org/downloads/)
-  - Verifique com: `python3 --version`
-
-## 🚀 Como rodar
+## 🖥️ Rodar localmente
 
 ```bash
-# 1. Entre na pasta
 cd FreightBoardPy
+pip install -r requirements.txt
+python app.py
+```
+Acesse: http://localhost:3000
 
-# 2. Instale as dependências
-pip3 install -r requirements.txt
+## ☁️ Deploy no Render (gratuito)
 
-# 3. Rode
-python3 app.py
+### Passo 1 — Subir no GitHub
+
+```bash
+cd FreightBoardPy
+git init
+git add .
+git commit -m "Agenda de Entregas v1"
 ```
 
-Acesse: **http://localhost:5000**
+Crie um repositório no GitHub e faça push:
+
+```bash
+git remote add origin https://github.com/SEU_USUARIO/agenda-entregas.git
+git branch -M main
+git push -u origin main
+```
+
+### Passo 2 — Criar no Render
+
+1. Acesse https://render.com e crie conta (grátis, sem cartão)
+2. Clique **New → Web Service**
+3. Conecte sua conta GitHub e selecione o repositório
+4. Configure:
+   - **Name:** `agenda-entregas`
+   - **Runtime:** `Python`
+   - **Build Command:** `pip install -r requirements.txt`
+   - **Start Command:** `gunicorn app:app --bind 0.0.0.0:$PORT --workers 2 --timeout 120`
+5. Em **Environment Variables**, adicione:
+   - `SECRET_KEY` → clique Generate
+   - `SUPPLIER_SOAP_USER` → `agendador`
+   - `SUPPLIER_SOAP_PASS` → `agendador`
+6. Clique **Create Web Service**
+
+Pronto! URL tipo: `https://agenda-entregas.onrender.com`
+
+### Deploy automático
+
+Cada `git push` no GitHub faz deploy automático no Render.
 
 ## 📁 Estrutura
 
@@ -28,44 +58,22 @@ Acesse: **http://localhost:5000**
 FreightBoardPy/
 ├── app.py                ← Flask server + rotas API
 ├── soap_service.py       ← Chamadas SOAP ao Senior
-├── requirements.txt      ← flask, requests
+├── requirements.txt      ← flask, requests, gunicorn
+├── render.yaml           ← Blueprint do Render
 ├── templates/
-│   └── index.html        ← Página principal
+│   ├── landing.html      ← Página inicial (escolha Agenda/Fornecedor)
+│   ├── index.html        ← Calendário interno (agenda)
+│   └── fornecedor.html   ← Portal do fornecedor
 └── static/
     ├── css/site.css      ← Estilos
     └── js/app.js         ← Lógica do calendário, drag, pendências
 ```
 
-## ⚙️ Configuração
+## ⚙️ Variáveis de ambiente
 
-Edite as credenciais em `app.py`:
-
-```python
-soap = SeniorSoapService(SoapSettings(
-    endpoint   = "https://...",
-    user       = "seu_usuario",
-    password   = "sua_senha",
-    encryption = 0,
-))
-```
-
-## 🔄 API REST interna
-
-| Rota | Método | Descrição |
-|------|--------|-----------|
-| `/api/orders` | GET | Lista ordens (chama SOAP → JSON) |
-| `/api/orders/save` | POST | Salva alterações pendentes |
-| `/api/debug` | GET | Última chamada SOAP (debug) |
-
-## ☁️ Deploy no Render
-
-1. Suba este projeto para um repositório no GitHub.
-2. No [Render](https://render.com), clique em **New → Web Service** e conecte o repositório.
-3. O arquivo `render.yaml` já configura tudo automaticamente (build, start command e `SECRET_KEY`). Se preferir configurar manualmente:
-   - **Build Command:** `pip install -r requirements.txt`
-   - **Start Command:** `gunicorn app:app --bind 0.0.0.0:$PORT`
-   - Adicione a variável de ambiente `SECRET_KEY` com um valor aleatório.
-4. Clique em **Create Web Service**. Em poucos minutos o app estará no ar em `https://seu-app.onrender.com`.
-
-> No plano gratuito, o serviço "dorme" após 15 min sem tráfego — a próxima requisição leva ~30-60s para acordar.
-
+| Variável | Descrição | Padrão |
+|----------|-----------|--------|
+| `SECRET_KEY` | Chave para sessão Flask | Gerada automaticamente |
+| `SUPPLIER_SOAP_USER` | Usuário SOAP para portal fornecedor | `agendador` |
+| `SUPPLIER_SOAP_PASS` | Senha SOAP para portal fornecedor | `agendador` |
+| `PORT` | Porta HTTP (Render define automaticamente) | `3000` |

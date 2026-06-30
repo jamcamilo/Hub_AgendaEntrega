@@ -1,0 +1,83 @@
+/* ============================================================
+   VOLT — Page templates (auth + error)
+   Shared styles for Login, Register, 404 and 500.
+   Requires volt.css (tokens + components).
+   ============================================================ */
+
+/* ---------------- AUTH (split layout) ---------------- */
+.auth { display: grid; grid-template-columns: 1.05fr 1fr; min-height: 100vh; font-family: var(--font); }
+
+.auth__brand {
+  background:
+    linear-gradient(150deg, rgba(47,63,202,.80), rgba(3,40,57,.90)),
+    url("brand-watermark.png") center / cover no-repeat;
+  color: #fff; padding: 56px; display: flex; flex-direction: column; justify-content: space-between;
+  position: relative; overflow: hidden;
+}
+.auth__blob { position: absolute; border-radius: 50%; background: rgba(255,255,255,.07); pointer-events: none; }
+.auth__blob--1 { width: 340px; height: 340px; top: -90px; right: -80px; }
+.auth__blob--2 { width: 220px; height: 220px; bottom: -60px; left: -50px; background: rgba(255,255,255,.05); }
+.auth__brand > *:not(.auth__blob) { position: relative; z-index: 1; }
+.auth__brand-logo { display: flex; align-items: center; gap: 12px; font-size: 18px; font-weight: 800; }
+.auth__brand-logo .ic { width: 42px; height: 42px; border-radius: 12px; background: rgba(255,255,255,.16); display: flex; align-items: center; justify-content: center; }
+.auth__brand-logo .ic .material-icons { font-size: 24px; }
+.auth__brand-content h2 { font-size: 34px; font-weight: 800; line-height: 1.2; margin: 0 0 14px; letter-spacing: -.6px; }
+.auth__brand-content p { font-size: 15px; color: rgba(255,255,255,.82); line-height: 1.6; max-width: 430px; margin: 0; }
+.auth__brand-points { display: flex; flex-direction: column; gap: 14px; margin-top: 32px; }
+.auth__brand-point { display: flex; align-items: center; gap: 12px; font-size: 14px; font-weight: 600; }
+.auth__brand-point .ic2 { width: 30px; height: 30px; border-radius: 9px; background: rgba(255,255,255,.16); display: flex; align-items: center; justify-content: center; flex: none; }
+.auth__brand-point .ic2 .material-icons { font-size: 17px; }
+.auth__brand-foot { font-size: 12px; color: rgba(255,255,255,.55); }
+
+.auth__form { display: flex; align-items: center; justify-content: center; padding: 40px; background: #fff; }
+.auth__card { width: 100%; max-width: 384px; }
+.auth__title { font-size: 26px; font-weight: 800; margin: 0 0 6px; letter-spacing: -.4px; color: var(--text); }
+.auth__subtitle { font-size: 14px; color: var(--text-secondary); margin: 0 0 28px; }
+.auth__field { margin-bottom: 16px; }
+.auth__pass { position: relative; }
+.auth__pass .volt-field__input { padding-right: 44px; }
+.auth__eye { position: absolute; right: 8px; top: 50%; transform: translateY(-50%); border: none; background: none; color: var(--gray-400); cursor: pointer; display: inline-flex; padding: 6px; }
+.auth__eye:hover { color: var(--gray-600); }
+.auth__row { display: flex; align-items: center; justify-content: space-between; margin: 6px 0 22px; }
+.auth__link { color: var(--primary-600); font-weight: 700; font-size: 13px; text-decoration: none; }
+.auth__link:hover { text-decoration: underline; }
+.auth__btn { width: 100%; }
+.auth__divider { display: flex; align-items: center; gap: 12px; color: var(--text-secondary); font-size: 12px; font-weight: 600; margin: 22px 0; }
+.auth__divider::before, .auth__divider::after { content: ""; flex: 1; height: 1px; background: var(--gray-100); }
+.auth__social { display: flex; gap: 10px; }
+.auth__social button { flex: 1; height: 46px; border: 1px solid var(--gray-200); border-radius: var(--radius-pill); background: #fff; font-family: var(--font); font-weight: 700; font-size: 14px; color: var(--text); display: flex; align-items: center; justify-content: center; gap: 8px; cursor: pointer; transition: background .15s ease; }
+.auth__social button:hover { background: var(--gray-075); }
+.auth__social img, .auth__social svg { width: 18px; height: 18px; }
+.auth__foot { text-align: center; font-size: 13px; color: var(--text-secondary); margin-top: 26px; }
+.auth__terms { display: flex; align-items: flex-start; gap: 10px; font-size: 12.5px; color: var(--text-secondary); line-height: 1.45; margin: 4px 0 22px; cursor: pointer; }
+.auth__terms .volt-check { margin-top: 1px; }
+.auth__terms a { color: var(--primary-600); font-weight: 700; text-decoration: none; }
+
+@media (max-width: 860px) {
+  .auth { grid-template-columns: 1fr; }
+  .auth__brand { display: none; }
+}
+
+/* ---------------- ERROR PAGES ---------------- */
+.errp { min-height: 100vh; display: flex; flex-direction: column; font-family: var(--font); background: var(--gray-075); }
+.errp__top { padding: 24px 32px; }
+.errp__brand { display: inline-flex; align-items: center; gap: 11px; font-size: 16px; font-weight: 800; color: var(--primary-800); text-decoration: none; }
+.errp__brand .ic { width: 34px; height: 34px; border-radius: 10px; background: var(--primary-500); display: flex; align-items: center; justify-content: center; }
+.errp__brand .ic .material-icons { color: #fff; font-size: 20px; }
+.errp__body { flex: 1; display: flex; align-items: center; justify-content: center; padding: 20px 32px 60px; }
+.errp__card { text-align: center; max-width: 480px; }
+.errp__badge { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 700; padding: 5px 12px; border-radius: 999px; margin-bottom: 22px; }
+.errp__badge .material-icons { font-size: 15px; }
+.errp__code { font-size: 132px; font-weight: 800; letter-spacing: -6px; line-height: .9; background-clip: text; -webkit-background-clip: text; color: transparent; }
+.errp__code--404 { background-image: linear-gradient(135deg, var(--primary-400), var(--primary-700)); }
+.errp__code--500 { background-image: linear-gradient(135deg, var(--error-400), var(--error-700)); }
+.errp__title { font-size: 26px; font-weight: 800; margin: 16px 0 10px; letter-spacing: -.3px; color: var(--text); }
+.errp__text { font-size: 15px; color: var(--text-secondary); line-height: 1.6; margin: 0 auto 30px; max-width: 400px; }
+.errp__actions { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+.errp__hint { margin-top: 30px; font-size: 12.5px; color: var(--text-secondary); }
+.errp__hint a { color: var(--primary-600); font-weight: 700; text-decoration: none; }
+.errp__foot { padding: 20px 32px; text-align: center; font-size: 12px; color: var(--text-secondary); }
+.errp__illus { width: 120px; height: 120px; border-radius: 28px; display: inline-flex; align-items: center; justify-content: center; margin-bottom: 6px; }
+.errp__illus--404 { background: var(--primary-050); color: var(--primary-500); }
+.errp__illus--500 { background: var(--error-050); color: var(--error-500); }
+.errp__illus .material-icons { font-size: 60px; }

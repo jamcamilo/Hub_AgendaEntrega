@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Portal do Fornecedor · Agenda de Entregas</title>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&display=swap" rel="stylesheet">
+  <style>
+    :root{--bg:#f0f2f5;--surface:#fff;--surface2:#f7f8fa;--border:#d1d5db;--border-light:#e5e7eb;--accent:#059669;--accent2:#d97706;--accent-blue:#2563eb;--danger:#dc2626;--text:#1e293b;--text-muted:#64748b;--text-faint:#94a3b8}
+    *{margin:0;padding:0;box-sizing:border-box}
+    body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+
+    .header{background:var(--surface);border-bottom:2px solid var(--border);padding:0 24px;display:flex;align-items:center;justify-content:space-between;height:60px;box-shadow:0 1px 4px rgba(0,0,0,0.06)}
+    .logo{font-family:'Syne',sans-serif;font-weight:800;font-size:18px;display:flex;align-items:center;gap:10px}
+    .logo-icon{width:32px;height:32px;background:linear-gradient(135deg,var(--accent),#10b981);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px;color:white}
+    .header-right{display:flex;align-items:center;gap:12px}
+    .back-link{font-size:13px;color:var(--text-muted);text-decoration:none;transition:color 0.15s}
+    .back-link:hover{color:var(--accent)}
+    .user-info{font-size:12px;color:var(--accent);background:rgba(5,150,105,0.08);padding:4px 12px;border-radius:8px;display:flex;align-items:center;gap:6px}
+    .logout-btn{background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:14px;padding:0 2px}
+    .logout-btn:hover{color:var(--danger)}
+    .refresh-btn{background:none;border:1px solid var(--border);border-radius:6px;padding:5px 12px;font-size:12px;color:var(--text-muted);cursor:pointer;font-family:'DM Sans',sans-serif}
+    .refresh-btn:hover{border-color:var(--accent);color:var(--accent)}
+
+    /* Login */
+    .login-overlay{position:fixed;inset:0;background:linear-gradient(135deg,#e8f5f0 0%,#ddf0e8 100%);z-index:10000;display:flex;align-items:center;justify-content:center;transition:opacity 0.3s}
+    .login-overlay.hidden{opacity:0;pointer-events:none}
+    .login-box{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:40px 36px;width:400px;box-shadow:0 16px 48px rgba(0,0,0,0.1);text-align:center}
+    .login-icon{font-size:48px;margin-bottom:12px}
+    .login-title{font-family:'Syne',sans-serif;font-weight:800;font-size:22px;color:var(--text);margin-bottom:4px}
+    .login-subtitle{font-size:13px;color:var(--text-muted);margin-bottom:24px;line-height:1.5}
+    .login-field{text-align:left;margin-bottom:14px}
+    .login-label{display:block;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.07em;color:var(--text-faint);margin-bottom:5px}
+    .login-input{width:100%;background:#f8f9fb;border:1px solid var(--border);border-radius:8px;padding:12px 14px;font-family:'DM Sans',sans-serif;font-size:15px;color:var(--text);outline:none;transition:border-color 0.15s;box-sizing:border-box;text-align:center;letter-spacing:1px}
+    .login-input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(5,150,105,0.08)}
+    .login-btn{width:100%;margin-top:8px;padding:13px;background:var(--accent);color:white;border:none;border-radius:8px;font-family:'DM Sans',sans-serif;font-size:14px;font-weight:600;cursor:pointer;transition:all 0.2s}
+    .login-btn:hover{background:#047857;transform:translateY(-1px)}
+    .login-btn:disabled{opacity:0.6;cursor:wait}
+    .login-error{background:rgba(220,38,38,0.08);border:1px solid rgba(220,38,38,0.2);border-radius:8px;padding:8px 12px;color:var(--danger);font-size:12px;margin-bottom:14px;text-align:left}
+    .login-hint{font-size:11px;color:var(--text-faint);margin-top:12px}
+
+    /* Results */
+    .results-section{max-width:900px;margin:24px auto;padding:0 20px}
+    .results-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+    .results-title{font-family:'Syne',sans-serif;font-weight:700;font-size:16px}
+    .results-count{font-size:12px;color:var(--accent);background:rgba(5,150,105,0.08);padding:2px 10px;border-radius:10px;font-weight:600}
+    .results-empty{text-align:center;padding:40px;color:var(--text-muted);font-size:14px}
+
+    /* Order card */
+    .forn-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;margin-bottom:10px;border-left:4px solid var(--accent);transition:all 0.15s;overflow:hidden}
+    .forn-card:hover{box-shadow:0 4px 16px rgba(0,0,0,0.06)}
+    .forn-card-header{padding:14px 20px;cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:12px;user-select:none}
+    .forn-card-header:hover{background:rgba(5,150,105,0.02)}
+    .forn-card-left{display:flex;align-items:center;gap:12px;flex:1;min-width:0}
+    .forn-oc{font-family:'Syne',sans-serif;font-weight:700;font-size:14px;color:var(--accent-blue);white-space:nowrap}
+    .forn-supplier{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .forn-card-right{display:flex;align-items:center;gap:10px;flex-shrink:0}
+    .forn-date{font-size:12px;color:var(--text-muted);white-space:nowrap}
+    .forn-items-count{font-size:11px;color:var(--accent);background:rgba(5,150,105,0.08);padding:2px 8px;border-radius:10px;font-weight:600}
+    .forn-expand-icon{font-size:14px;color:var(--text-faint);transition:transform 0.2s}
+    .forn-card.open .forn-expand-icon{transform:rotate(180deg)}
+    .forn-scheduled-badge{font-size:10px;color:var(--accent);background:rgba(5,150,105,0.12);padding:2px 8px;border-radius:10px;font-weight:700}
+
+    /* Card body (collapsible) */
+    .forn-card-body{display:none;padding:0 20px 16px;border-top:1px solid var(--border-light)}
+    .forn-card.open .forn-card-body{display:block}
+
+    /* Items table */
+    .forn-items-section{margin-top:12px}
+    .forn-items-title{font-family:'Syne',sans-serif;font-size:12px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:8px}
+    .forn-item-card{background:var(--surface2);border:1px solid var(--border-light);border-radius:8px;padding:10px 12px;margin-bottom:8px}
+    .forn-item-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
+    .forn-item-code{font-family:'Syne',sans-serif;font-weight:700;font-size:12px;color:var(--accent-blue)}
+    .forn-item-qtd{font-size:11px;color:var(--text-muted)}
+    .forn-item-desc{font-size:11px;color:var(--text-muted);margin-bottom:8px;line-height:1.4;word-break:break-word}
+
+    /* Splits table */
+    .forn-splits{margin-top:6px}
+    .forn-splits-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
+    .forn-splits-label{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;color:var(--text-faint)}
+    .forn-add-btn{background:var(--accent);color:white;border:none;border-radius:5px;padding:3px 10px;font-size:11px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;transition:background 0.15s}
+    .forn-add-btn:hover{background:#047857}
+    .forn-split-table{width:100%;border-collapse:collapse;font-size:12px}
+    .forn-split-table th{text-align:left;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.04em;color:var(--text-faint);padding:4px 6px;border-bottom:1px solid var(--border)}
+    .forn-split-table td{padding:4px 6px;border-bottom:1px solid var(--border-light);vertical-align:middle}
+    .forn-split-table tfoot td{border-bottom:none;padding-top:6px;font-size:12px}
+    .forn-split-input{background:var(--surface);border:1px solid var(--border);border-radius:5px;padding:5px 8px;font-family:'DM Sans',sans-serif;font-size:12px;color:var(--text);outline:none;transition:border-color 0.15s;width:100%;box-sizing:border-box}
+    .forn-split-input:focus{border-color:var(--accent)}
+    .forn-split-qty{width:80px;text-align:right}
+    .forn-remove-btn{background:transparent;border:1px solid var(--border);border-radius:4px;color:var(--text-muted);cursor:pointer;font-size:12px;padding:2px 6px;transition:all 0.15s}
+    .forn-remove-btn:hover{border-color:var(--danger);color:var(--danger)}
+    .split-warn{color:var(--accent2);font-weight:700}
+    .split-ok{color:var(--accent);font-weight:600}
+
+    /* Schedule form */
+    .forn-schedule{background:var(--surface2);border:1px solid var(--border-light);border-radius:8px;padding:14px;margin-top:12px}
+    .forn-schedule-title{font-family:'Syne',sans-serif;font-size:12px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:10px}
+    .forn-form{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+    .forn-field{display:flex;flex-direction:column;gap:3px}
+    .forn-field.full{grid-column:1/-1}
+    .forn-label{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;color:var(--text-faint)}
+    .forn-input{background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:8px 10px;font-family:'DM Sans',sans-serif;font-size:13px;color:var(--text);outline:none;transition:border-color 0.15s}
+    .forn-input:focus{border-color:var(--accent)}
+    .forn-input-nfe{font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.5px}
+    .forn-actions{grid-column:1/-1;display:flex;gap:8px;justify-content:flex-end;margin-top:4px}
+    .forn-btn{padding:9px 20px;border:none;border-radius:6px;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;cursor:pointer;transition:all 0.15s}
+    .forn-btn-save{background:var(--accent);color:white}
+    .forn-btn-save:hover{background:#047857}
+
+    .toast-container{position:fixed;bottom:24px;right:24px;z-index:9999;display:flex;flex-direction:column;gap:8px}
+    .toast{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px 16px;display:flex;align-items:center;gap:10px;font-size:13px;box-shadow:0 4px 20px rgba(0,0,0,0.12);animation:slideIn 0.3s ease;min-width:280px}
+    .toast.success{border-left:3px solid var(--accent)}.toast.error{border-left:3px solid var(--danger)}.toast.info{border-left:3px solid var(--accent-blue)}
+    @keyframes slideIn{from{transform:translateX(100%);opacity:0}to{transform:translateX(0);opacity:1}}
+    @keyframes slideOut{from{transform:translateX(0);opacity:1}to{transform:translateX(120%);opacity:0}}
+    @media(max-width:600px){.forn-form{grid-template-columns:1fr}.login-box{width:90%;padding:30px 24px}.forn-card-left{flex-direction:column;align-items:flex-start;gap:4px}}
+  </style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div class="login-overlay" id="login-overlay">
+  <div class="login-box">
+    <div class="login-icon">🏭</div>
+    <h1 class="login-title">Portal do Fornecedor</h1>
+    <p class="login-subtitle">Informe seu CPF ou CNPJ para acessar suas ordens de compra</p>
+    <div id="login-error" class="login-error" style="display:none"></div>
+    <div class="login-field">
+      <label class="login-label">CPF ou CNPJ</label>
+      <input class="login-input" id="login-doc" type="text" placeholder="00.000.000/0000-00" maxlength="20" autocomplete="username" />
+    </div>
+    <div class="login-field">
+      <label class="login-label">Senha</label>
+      <input class="login-input" id="login-pass" type="password" placeholder="•••••" maxlength="5" autocomplete="current-password" style="max-width:200px;margin:0 auto" />
+    </div>
+    <button class="login-btn" id="login-btn" onclick="doLogin()">Entrar</button>
+    <p class="login-hint">Primeiro acesso? Sua senha são os 5 primeiros dígitos do CPF/CNPJ.</p>
+    <p style="margin-top:16px"><a href="/" class="back-link">← Voltar ao início</a></p>
+  </div>
+</div>
+
+<!-- HEADER -->
+<header class="header">
+  <div class="logo"><div class="logo-icon">🏭</div><span>Portal do Fornecedor</span></div>
+  <div class="header-right">
+    <div class="user-info" id="user-info" style="display:none">🏢 <span id="user-doc"></span><button class="logout-btn" onclick="doLogout()" title="Sair">↪</button></div>
+    <button class="refresh-btn" onclick="buscarOrdens()">↻ Atualizar</button>
+    <a href="/" class="back-link">← Início</a>
+  </div>
+</header>
+
+<!-- RESULTS -->
+<div class="results-section" id="results-section" style="display:none">
+  <div class="results-header">
+    <span class="results-title">📦 Ordens de Compra</span>
+    <span class="results-count" id="results-count">0</span>
+  </div>
+  <div id="results-list"></div>
+</div>
+
+<div class="toast-container" id="toasts"></div>
+
+{% raw %}
+<script>
+let fornOrders = [];
+let fornSplits = {}; // { orderId_codPro: [{ date, qty }] }
+let agendamentos = {};
+let loggedDoc = '';
+
+// ── Init ──────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', checkSession);
+document.getElementById('login-doc').addEventListener('keydown', e => { if (e.key==='Enter') document.getElementById('login-pass').focus(); });
+document.getElementById('login-pass').addEventListener('keydown', e => { if (e.key==='Enter') doLogin(); });
+
+async function checkSession() {
+  try {
+    const r = await fetch('/api/fornecedor/session');
+    const d = await r.json();
+    if (d.logged) { loggedDoc = d.documento; hideLogin(); buscarOrdens(); }
+  } catch(e) {}
+}
+
+// ── Login ─────────────────────────────────────────────
+async function doLogin() {
+  const doc=document.getElementById('login-doc').value.trim(), pass=document.getElementById('login-pass').value.trim();
+  const errEl=document.getElementById('login-error'), btn=document.getElementById('login-btn');
+  if (!doc||!pass) { errEl.textContent='Preencha CPF/CNPJ e senha.'; errEl.style.display=''; return; }
+  errEl.style.display='none'; btn.disabled=true; btn.textContent='Entrando...';
+  try {
+    const r=await fetch('/api/fornecedor/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({documento:doc,senha:pass})});
+    const d=await r.json();
+    if(d.ok){loggedDoc=d.documento;hideLogin();buscarOrdens();}
+    else{errEl.textContent=d.error||'Erro.';errEl.style.display='';}
+  }catch(e){errEl.textContent='Erro: '+e.message;errEl.style.display='';}
+  btn.disabled=false;btn.textContent='Entrar';
+}
+function hideLogin(){
+  document.getElementById('login-overlay').classList.add('hidden');
+  document.getElementById('user-info').style.display='flex';
+  const d=loggedDoc;
+  document.getElementById('user-doc').textContent=d.length===14?d.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/,'$1.$2.$3/$4-$5'):d.length===11?d.replace(/^(\d{3})(\d{3})(\d{3})(\d{2})$/,'$1.$2.$3-$4'):d;
+}
+async function doLogout(){
+  await fetch('/api/fornecedor/logout',{method:'POST'});
+  loggedDoc='';fornOrders=[];fornSplits={};agendamentos={};
+  document.getElementById('user-info').style.display='none';
+  document.getElementById('results-section').style.display='none';
+  document.getElementById('login-overlay').classList.remove('hidden');
+  document.getElementById('login-doc').value='';document.getElementById('login-pass').value='';
+}
+
+// ── Search ────────────────────────────────────────────
+async function buscarOrdens(){
+  showToast('Buscando ordens...','info');
+  try{
+    const r=await fetch('/api/fornecedor/buscar',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({documento:loggedDoc})});
+    const d=await r.json();
+    if(d.error){showToast(d.error,'error');}
+    else{fornOrders=d.orders||[];console.log('[FORNECEDOR] Ordens recebidas:', JSON.stringify(fornOrders[0]));renderResults();showToast(fornOrders.length?fornOrders.length+' ordem(s)':'Nenhuma ordem.', fornOrders.length?'success':'info');}
+  }catch(e){showToast('Erro: '+e.message,'error');}
+}
+
+// ── Render ────────────────────────────────────────────
+function renderResults(){
+  const section=document.getElementById('results-section'), list=document.getElementById('results-list');
+  document.getElementById('results-count').textContent=fornOrders.length+' ordem(s)';
+  if(!fornOrders.length){section.style.display='block';list.innerHTML='<div class="results-empty">Nenhuma ordem em aberto.</div>';return;}
+  section.style.display='block';
+
+  list.innerHTML=fornOrders.map(o=>{
+    const products=o.products||[o.product];
+    const itens=o.itens||[];
+    const ag=agendamentos[o.id];
+    const scheduled=ag&&ag.dataEntrega;
+    const itemCount=itens.length;
+    const totalQty=itens.reduce((s,it)=>s+(it.qtdAbe||0),0);
+
+    return `
+    <div class="forn-card" id="card-${o.id}">
+      <div class="forn-card-header" onclick="toggleCard('${o.id}')">
+        <div class="forn-card-left">
+          <span class="forn-oc">🚚 #${esc(o.id)}</span>
+          <span class="forn-supplier">${esc(o.supplier)}</span>
+        </div>
+        <div class="forn-card-right">
+          ${scheduled?'<span class="forn-scheduled-badge">✅ Agendado</span>':''}
+          ${itemCount?`<span class="forn-items-count">${itemCount} ${itemCount===1?'item':'itens'} · ${totalQty} un</span>`:''}
+          <span class="forn-date">📅 ${formatDate(o.deliveryDate)}</span>
+          <span class="forn-expand-icon">▼</span>
+        </div>
+      </div>
+      <div class="forn-card-body">
+        <!-- Itens com quebra -->
+        ${itens.length?`
+        <div class="forn-items-section">
+          <div class="forn-items-title">📦 Itens — distribuição de entrega</div>
+          ${itens.map((it,idx)=>renderFornItem(o,it,idx)).join('')}
+        </div>`:`
+        <div class="forn-items-section">
+          <div style="font-size:12px;color:var(--text-muted);padding:8px 0;">
+            ${products.map(p=>'<div style="padding:2px 6px;border-left:2px solid var(--accent);margin-bottom:3px;">'+esc(p)+'</div>').join('')}
+          </div>
+        </div>`}
+
+        <!-- Agendamento -->
+        <div class="forn-schedule">
+          <div class="forn-schedule-title">📋 Dados da entrega</div>
+          <div class="forn-form">
+            <div class="forn-field full">
+              <label class="forn-label">Chave NFe (44 dígitos)</label>
+              <input class="forn-input forn-input-nfe" type="text" maxlength="44" id="ag-nfe-${o.id}" value="${ag?.chaveNfe||''}" placeholder="00000000000000000000000000000000000000000000" />
+            </div>
+            <div class="forn-field">
+              <label class="forn-label">Nome do motorista</label>
+              <input class="forn-input" type="text" id="ag-nome-${o.id}" value="${ag?.nomeMotorista||''}" placeholder="Nome completo" />
+            </div>
+            <div class="forn-field">
+              <label class="forn-label">CPF do motorista</label>
+              <input class="forn-input" type="text" maxlength="14" id="ag-cpf-${o.id}" value="${ag?.cpfMotorista||''}" placeholder="000.000.000-00" />
+            </div>
+            <div class="forn-field">
+              <label class="forn-label">Placa do veículo</label>
+              <input class="forn-input" type="text" maxlength="8" id="ag-placa-${o.id}" value="${ag?.placaVeiculo||''}" placeholder="ABC-1D23" style="text-transform:uppercase" />
+            </div>
+            <div class="forn-actions">
+              <button class="forn-btn forn-btn-save" onclick="salvarAgendamento('${o.id}')">✓ Confirmar agendamento</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function renderFornItem(order, item, idx){
+  const key=`${order.id}_${item.codPro}`;
+  if(!fornSplits[key]) fornSplits[key]=[{date:order.deliveryDate,qty:item.qtdAbe,time:'08:00'}];
+  const splits=fornSplits[key];
+  const total=splits.reduce((s,r)=>s+(parseFloat(r.qty)||0),0);
+  const remaining=item.qtdAbe-total;
+
+  return `
+  <div class="forn-item-card">
+    <div class="forn-item-header">
+      <span class="forn-item-code">${esc(item.codPro)}</span>
+      <span class="forn-item-qtd">Pedido: ${item.qtdPed} · Aberto: ${item.qtdAbe}</span>
+    </div>
+    <div class="forn-item-desc">${esc(item.desPro)}</div>
+    <div class="forn-splits" id="fsplits-${esc(key)}">
+      <div class="forn-splits-header">
+        <span class="forn-splits-label">Entregas programadas:</span>
+        <button class="forn-add-btn" onclick="fornAddSplit('${esc(key)}','${order.deliveryDate}',${item.qtdAbe})">+ Adicionar data</button>
+      </div>
+      <table class="forn-split-table">
+        <thead><tr><th>Data</th><th>Horário</th><th>Quantidade</th><th></th></tr></thead>
+        <tbody>
+          ${splits.map((s,i)=>`
+          <tr>
+            <td><input type="date" class="forn-split-input" value="${s.date}" onchange="fornUpdateSplit('${key}',${i},'date',this.value,${item.qtdAbe})" /></td>
+            <td><input type="time" class="forn-split-input" value="${s.time||'08:00'}" onchange="fornUpdateSplit('${key}',${i},'time',this.value,${item.qtdAbe})" style="width:100px" /></td>
+            <td><input type="number" class="forn-split-input forn-split-qty" value="${s.qty}" min="0" max="${item.qtdAbe}" step="1" onchange="fornUpdateSplit('${key}',${i},'qty',this.value,${item.qtdAbe})" /></td>
+            <td>${splits.length>1?`<button class="forn-remove-btn" onclick="fornRemoveSplit('${key}',${i},${item.qtdAbe})">✕</button>`:''}</td>
+          </tr>`).join('')}
+        </tbody>
+        <tfoot><tr>
+          <td colspan="2" style="text-align:right;font-weight:600">Total:</td>
+          <td class="${Math.abs(remaining)>0.01?'split-warn':'split-ok'}">${total} / ${item.qtdAbe} ${Math.abs(remaining)>0.01?`(resta ${remaining.toFixed(1)})`:' ✓'}</td>
+          <td></td>
+        </tr></tfoot>
+      </table>
+    </div>
+  </div>`;
+}
+
+// ── Splits ─────────────────────────────────────────────
+function fornUpdateSplit(key,idx,field,value,qtdAbe){
+  if(field==='qty'){
+    value=parseFloat(value)||0;
+    if(value<0) value=0;
+    const otherTotal=fornSplits[key].reduce((s,r,i)=>i===idx?s:s+(parseFloat(r.qty)||0),0);
+    const maxAllowed=Math.max(0,qtdAbe-otherTotal);
+    if(value>maxAllowed) value=maxAllowed;
+  }
+  fornSplits[key][idx][field]=value;
+  refreshSplitUI(key,qtdAbe);
+}
+function fornAddSplit(key,defaultDate,qtdAbe){
+  const used=fornSplits[key].reduce((s,r)=>s+(parseFloat(r.qty)||0),0);
+  const remaining=Math.max(0,qtdAbe-used);
+  if(remaining<=0){showToast('Toda a quantidade já foi distribuída.','info');return;}
+  fornSplits[key].push({date:defaultDate,qty:remaining,time:'08:00'});
+  refreshSplitUI(key,qtdAbe);
+}
+function fornRemoveSplit(key,idx,qtdAbe){
+  fornSplits[key].splice(idx,1);
+  refreshSplitUI(key,qtdAbe);
+}
+function refreshSplitUI(key,qtdAbe){
+  // Re-render the entire results to keep state consistent
+  renderResults();
+}
+
+function toggleCard(id){document.getElementById('card-'+id)?.classList.toggle('open');}
+
+// ── Save ──────────────────────────────────────────────
+async function salvarAgendamento(orderId){
+  const order=fornOrders.find(o=>o.id===orderId);
+  if(!order) return;
+
+  // Valida splits
+  let valid=true;
+  (order.itens||[]).forEach(it=>{
+    const key=`${orderId}_${it.codPro}`;
+    const splits=fornSplits[key]||[];
+    const total=splits.reduce((s,r)=>s+(parseFloat(r.qty)||0),0);
+    if(Math.abs(total-it.qtdAbe)>0.01) valid=false;
+  });
+  if(!valid){showToast('Distribua toda a quantidade dos itens antes de confirmar.','error');return;}
+
+  // Coleta splits para enviar
+  const entregas=[];
+  (order.itens||[]).forEach((it,idx)=>{
+    const key=`${orderId}_${it.codPro}`;
+    (fornSplits[key]||[]).forEach((s,si)=>{
+      entregas.push({codPro:it.codPro,date:s.date,time:s.time||'08:00',qty:s.qty,seqIpo:idx+1,seqDis:si+1});
+    });
+  });
+
+  const ag={
+    orderId,
+    documento:loggedDoc,
+    chaveNfe:document.getElementById('ag-nfe-'+orderId)?.value.trim()||'',
+    nomeMotorista:document.getElementById('ag-nome-'+orderId)?.value.trim()||'',
+    cpfMotorista:document.getElementById('ag-cpf-'+orderId)?.value.trim()||'',
+    placaVeiculo:document.getElementById('ag-placa-'+orderId)?.value.trim().toUpperCase()||'',
+    entregas,
+    // Data/hora principal = primeiro split
+    dataEntrega:entregas[0]?.date||'',
+    horaEntrega:entregas[0]?.time||'08:00',
+  };
+
+  if(ag.chaveNfe&&ag.chaveNfe.length!==44){showToast('Chave NFe deve ter 44 dígitos.','error');return;}
+
+  try{
+    const r=await fetch('/api/fornecedor/agendar',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(ag)});
+    const d=await r.json();
+    if(d.ok){agendamentos[orderId]=ag;showToast('Agendamento confirmado para OC #'+orderId+'!','success');renderResults();}
+    else showToast(d.error||'Erro.','error');
+  }catch(e){showToast('Erro: '+e.message,'error');}
+}
+
+// ── Helpers ───────────────────────────────────────────
+function formatDate(d){if(!d)return'';const[y,m,dd]=d.split('-');return`${dd}/${m}/${y}`;}
+function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+
+function showToast(msg,type){const c=document.getElementById('toasts');const t=document.createElement('div');t.className='toast '+type;t.innerHTML='<span>'+({'success':'✓','error':'✕','info':'→'}[type]||'·')+'</span><span>'+msg+'</span>';c.appendChild(t);setTimeout(function(){t.style.animation='slideOut 0.3s ease forwards';setTimeout(function(){t.remove()},300)},3500);}
+</script>
+{% endraw %}
+</body>
+</html>

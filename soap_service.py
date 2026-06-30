@@ -31,6 +31,8 @@ class ItemOC:
     num_ocp: str  = ""
     qtd_abe: float = 0.0
     qtd_ped: float = 0.0
+    num_doc: str   = ""    # Número da doca
+    hor_des: str   = ""    # Horário descarregamento (Oracle minutes)
 
     def to_dict(self):
         return {
@@ -41,6 +43,9 @@ class ItemOC:
             "numOcp": self.num_ocp,
             "qtdAbe": self.qtd_abe,
             "qtdPed": self.qtd_ped,
+            "numDoc": self.num_doc,
+            "horDes": self.hor_des,
+            "horDesHM": SeniorSoapService._oracle_to_time(self.hor_des),
         }
 
 
@@ -185,12 +190,46 @@ class SeniorSoapService:
         except ValueError:
             return iso.strip()
 
+    @staticmethod
+    def _time_to_oracle(time_str: str) -> str:
+        """HH:MM → formato Oracle decimal em minutos (4 dígitos).
+        Ex: 08:00 → 0480, 08:30 → 0510, 01:00 → 0060, 00:59 → 0059
+        """
+        if not time_str or ':' not in time_str:
+            return time_str or ''
+        try:
+            parts = time_str.strip().split(':')
+            hours = int(parts[0])
+            minutes = int(parts[1])
+            total = hours * 60 + minutes
+            return f"{total:04d}"
+        except (ValueError, IndexError):
+            return time_str
+
+    @staticmethod
+    def _oracle_to_time(oracle_str: str) -> str:
+        """Formato Oracle decimal em minutos → HH:MM.
+        Ex: 0480 → 08:00, 0510 → 08:30, 0060 → 01:00
+        """
+        if not oracle_str or oracle_str == '0':
+            return ''
+        try:
+            total = int(oracle_str)
+            if total == 0:
+                return ''
+            hours = total // 60
+            minutes = total % 60
+            return f"{hours:02d}:{minutes:02d}"
+        except (ValueError, TypeError):
+            return oracle_str
+
     # ── Business methods ────────────────────────────────────
-    def listar_ordens(self, dat_ini: str = "", dat_fim: str = "") -> List[PurchaseOrder]:
+    def listar_ordens(self, dat_ini: str = "", dat_fim: str = "", cgc_cpf: str = "0") -> List[PurchaseOrder]:
         """
         dat_ini e dat_fim em yyyy-MM-dd. São convertidos para dd/MM/yyyy para o Senior.
+        cgc_cpf: "0" para busca interna (todas), ou número sem zeros à esquerda para fornecedor.
         """
-        params = ""
+        params = f"<cgcCpf>{cgc_cpf}</cgcCpf>"
         if dat_ini:
             params += f"<datIni>{self._format_date_br(dat_ini)}</datIni>"
         if dat_fim:
@@ -240,16 +279,40 @@ class SeniorSoapService:
                     num_ocp = get("numOcp"),
                     qtd_abe = qtd_abe,
                     qtd_ped = qtd_ped,
+                    num_doc = get("numDoc"),
+                    hor_des = get("horDes"),
                 ))
         return itens
 
     def atualizar_data_entrega(self, order_id: str, emp: str, fil: str,
                                dt_ant: str, dt_new: str,
-                               chave_nfe: str = "", observacao: str = "") -> bool:
+                               chave_nfe: str = "", observacao: str = "",
+                               dist_oc: Optional[List[dict]] = None) -> bool:
         """
         Chama ReturnDtEnt para alterar a data de entrega.
         dt_ant e dt_new em yyyy-MM-dd → convertidos para dd/MM/yyyy.
+        dist_oc: lista de dicts com { codEmp, codFil, datPrg, numOcp, qtdDis, seqIpo }
         """
+        # Monta distOC XML no formato WSDL
+        dist_xml = ""
+        if dist_oc:
+            for d in dist_oc:
+                dat_prg = self._format_date_br(d.get("datPrg", ""))
+                hor_des = self._time_to_oracle(d.get("horDes", ""))
+                dist_xml += (
+                    f"<distOC>"
+                    f"<codEmp>{d.get('codEmp', emp)}</codEmp>"
+                    f"<codFil>{d.get('codFil', fil)}</codFil>"
+                    f"<numOcp>{d.get('numOcp', order_id)}</numOcp>"
+                    f"<seqIpo>{d.get('seqIpo', '')}</seqIpo>"
+                    f"<seqDis>{d.get('seqDis', '')}</seqDis>"
+                    f"<qtdDis>{d.get('qtdDis', 0)}</qtdDis>"
+                    f"<datPrg>{dat_prg}</datPrg>"
+                    f"<numDoc>{d.get('numDoc', '')}</numDoc>"
+                    f"<horDes>{hor_des}</horDes>"
+                    f"</distOC>"
+                )
+
         params = (
             f"<id>{order_id}</id>"
             f"<emp>{emp}</emp>"
@@ -258,8 +321,12 @@ class SeniorSoapService:
             f"<dtNew>{self._format_date_br(dt_new)}</dtNew>"
             f"<chaveNfe>{chave_nfe}</chaveNfe>"
             f"<observacao>{observacao}</observacao>"
+            f"{dist_xml}"
             f"<flowInstanceID></flowInstanceID>"
             f"<flowName></flowName>"
         )
+        print(f"  [SOAP] ReturnDtEnt distOC={'SIM' if dist_xml else 'NÃO'} ({len(dist_oc or [])} linhas)")
+        if dist_xml:
+            print(f"  [SOAP] DistOC XML: {dist_xml[:500]}")
         self._call("ReturnDtEnt", params)
         return self.debug.last_error == ""
