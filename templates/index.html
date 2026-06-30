@@ -54,25 +54,19 @@
   </div>
 </div>
 
-<!-- HEADER -->
-<header class="header">
-  <div class="logo">
-    <div class="logo-icon">🚚</div>
-    <span>Agenda de Entregas</span>
+<!-- HEADER (minimal) -->
+<header class="volt-header" id="main-header">
+  <div class="hd-crumb">
+    <a href="/">Início</a><span class="sep">/</span><b id="hd-page-title">Calendário</b>
   </div>
-  <div class="header-actions">
-    <div class="status-dot" title="Conectado"></div>
+  <div class="hd-actions">
     <div id="save-bar" style="display:none;align-items:center;gap:8px;">
-      <button id="save-btn" class="btn btn-save" onclick="saveAllChanges()">💾 Salvar</button>
-      <button class="btn btn-ghost btn-discard" onclick="discardAllChanges()">✕ Descartar</button>
+      <button id="save-btn" class="volt-btn volt-btn--primary volt-btn--sm" onclick="saveAllChanges()"><span class="material-icons" style="font-size:16px;">save</span> Salvar</button>
+      <button class="volt-btn volt-btn--secondary volt-btn--sm" onclick="discardAllChanges()"><span class="material-icons" style="font-size:16px;">close</span> Descartar</button>
     </div>
-    <button class="btn btn-ghost" onclick="openDebug()">🔍 Debug</button>
-    <button class="btn btn-ghost" onclick="loadOrders()">↻ Atualizar</button>
-    <button class="btn btn-ghost" id="toggle-sidebar-btn" onclick="toggleSidebar()" title="Mostrar/ocultar painel">☰</button>
-    <!-- User info -->
     <div class="user-badge" id="user-badge" style="display:none;">
       <span id="user-name"></span>
-      <button class="user-logout" onclick="doLogout()" title="Sair">↪</button>
+      <button class="user-logout" onclick="doLogout()" title="Sair"><span class="material-icons" style="font-size:16px;">logout</span></button>
     </div>
   </div>
 </header>
@@ -86,43 +80,78 @@
   </div>
 </div>
 
-<!-- LAYOUT -->
-<div class="layout">
+<!-- LAYOUT: sidebar left + main -->
+<div class="volt-shell">
 
-  <!-- CALENDAR -->
-  <main class="calendar-area">
+  <!-- LEFT SIDEBAR (dark) -->
+  <aside class="volt-sidebar">
+    <div class="sb-brand">
+      <div class="sb-logo"><span class="material-icons">local_shipping</span></div>
+      <div><b>Agenda</b><span>ENTREGAS</span></div>
+    </div>
+
+    <!-- View tabs -->
+    <div class="sb-group">Visualização</div>
+    <div class="sb-item active" id="tab-calendar" onclick="switchView('calendar')">
+      <span class="material-icons">calendar_month</span>Calendário
+    </div>
+    <div class="sb-item" id="tab-docks" onclick="switchView('docks')">
+      <span class="material-icons">warehouse</span>Docas
+    </div>
+
+    <!-- Filters -->
+    <div class="sb-group">Filtros</div>
+    <div class="sb-filters">
+      <select id="filter-tipmer" class="sb-select" onchange="applyFilters()">
+        <option value="">Tipo Mercadoria</option>
+      </select>
+      <select id="filter-desori" class="sb-select" onchange="applyFilters()">
+        <option value="">Origem</option>
+      </select>
+      <select id="filter-sitipo" class="sb-select" onchange="applyFilters()">
+        <option value="">Situação</option>
+      </select>
+      <select id="filter-nomusu" class="sb-select" onchange="applyFilters()">
+        <option value="">Usuário</option>
+      </select>
+      <select id="filter-fil" class="sb-select" onchange="applyFilters()">
+        <option value="">Filial</option>
+      </select>
+      <select id="filter-coddep" class="sb-select" onchange="applyFilters()">
+        <option value="">Depósito</option>
+      </select>
+    </div>
+
+    <!-- Actions -->
+    <div class="sb-group">Ações</div>
+    <div class="sb-item" onclick="loadOrders()">
+      <span class="material-icons">refresh</span>Atualizar
+    </div>
+    <div class="sb-item" onclick="openDebug()">
+      <span class="material-icons">bug_report</span>Debug SOAP
+    </div>
+    <div class="sb-item" onclick="toggleOrdersPanel()">
+      <span class="material-icons">list_alt</span>Ordens <span class="sb-badge" id="order-count">0</span>
+    </div>
+
+    <!-- Logout -->
+    <div class="sb-item" onclick="doLogout()" style="margin-top:auto;">
+      <span class="material-icons">logout</span>Sair
+    </div>
+  </aside>
+
+  <!-- MAIN CONTENT -->
+  <main class="volt-main">
+    <!-- Calendar toolbar (minimal - just nav) -->
     <div class="cal-toolbar">
       <div class="cal-nav">
         <button class="nav-btn" onclick="prevMonth()">‹</button>
         <h2 class="cal-title" id="cal-title"></h2>
         <button class="nav-btn" onclick="nextMonth()">›</button>
       </div>
-      <button class="btn btn-ghost today-btn" onclick="goToday()">Hoje</button>
-      <!-- View tabs -->
-      <div class="view-tabs">
-        <button class="view-tab active" id="tab-calendar" onclick="switchView('calendar')">📅 Calendário</button>
-        <button class="view-tab" id="tab-docks" onclick="switchView('docks')">🏭 Docas</button>
-      </div>
-      <!-- Filtros -->
-      <select id="filter-tipmer" class="filter-select" onchange="applyFilters()">
-        <option value="">Tipo Mercadoria: Todos</option>
-      </select>
-      <select id="filter-desori" class="filter-select" onchange="applyFilters()">
-        <option value="">Origem: Todos</option>
-      </select>
-      <select id="filter-sitipo" class="filter-select" onchange="applyFilters()">
-        <option value="">Situação: Todos</option>
-      </select>
-      <select id="filter-nomusu" class="filter-select" onchange="applyFilters()">
-        <option value="">Usuário: Todos</option>
-      </select>
-      <select id="filter-fil" class="filter-select" onchange="applyFilters()">
-        <option value="">Filial: Todos</option>
-      </select>
-      <select id="filter-coddep" class="filter-select" onchange="applyFilters()">
-        <option value="">Depósito: Todos</option>
-      </select>
+      <button class="volt-btn volt-btn--secondary volt-btn--sm" onclick="goToday()"><span class="material-icons" style="font-size:16px;">today</span> Hoje</button>
     </div>
+
     <div class="cal-grid-wrap" id="view-calendar">
       <div class="cal-grid" id="cal-grid"></div>
     </div>
@@ -131,25 +160,18 @@
     </div>
   </main>
 
-  <!-- SIDEBAR -->
-  <aside class="sidebar" id="sidebar">
+  <!-- RIGHT PANEL (orders - toggleable) -->
+  <aside class="orders-panel" id="sidebar">
     <div class="sidebar-header">
       Ordens de Compra
-      <span class="badge" id="order-count">0</span>
+      <span class="badge" id="order-count-2">0</span>
+      <button class="sb-close-btn" onclick="toggleOrdersPanel()"><span class="material-icons">close</span></button>
     </div>
     <div style="padding:10px 12px 0;">
-      <input id="sidebar-search" class="config-url" placeholder="🔍 Buscar OC, fornecedor, produto..." oninput="renderSidebar()" style="width:100%;font-size:12px;" />
+      <input id="sidebar-search" class="volt-field__input" placeholder="Buscar OC, fornecedor..." oninput="renderSidebar()" style="width:100%;font-size:12px;" />
     </div>
-
-    <!-- Pending changes panel -->
     <div id="pending-panel" class="pending-panel" style="display:none;margin:10px 12px 0;"></div>
-
     <div class="orders-list" id="orders-list"></div>
-
-    <div class="config-panel" style="flex-direction:column;align-items:stretch;gap:4px;padding:14px 16px;">
-      <div style="font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--text-faint);">Senior SOAP</div>
-      <div style="font-size:10px;color:var(--accent);font-family:'DM Mono',monospace;padding:4px 8px;background:var(--bg);border-radius:4px;border:1px solid var(--border);">sapiens_SyncSuply · ListarOrdensResponse</div>
-    </div>
   </aside>
 
 </div>

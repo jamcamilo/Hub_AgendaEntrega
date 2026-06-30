@@ -33,21 +33,21 @@ function populateFilters() {
   const curTip = selTip.value, curDes = selDes.value, curSit = selSit.value;
   const curUsu = selUsu.value, curFil = selFil.value, curDep = selDep.value;
 
-  selTip.innerHTML = '<option value="">Tipo Mercadoria: Todos</option>'
+  selTip.innerHTML = '<option value="">Tipo Mercadoria</option>'
     + tipMers.map(v => `<option value="${esc(v)}" ${v===curTip?'selected':''}>${esc(v)}</option>`).join('');
-  selDes.innerHTML = '<option value="">Origem: Todos</option>'
+  selDes.innerHTML = '<option value="">Origem</option>'
     + desOris.map(v => `<option value="${esc(v)}" ${v===curDes?'selected':''}>${esc(v)}</option>`).join('');
-  selSit.innerHTML = '<option value="">Situação: Todos</option>'
+  selSit.innerHTML = '<option value="">Situação</option>'
     + sitIpos.map(v => `<option value="${esc(v)}" ${v===curSit?'selected':''}>${esc(SIT_LABELS[v]||v)}</option>`).join('');
-  selUsu.innerHTML = '<option value="">Usuário: Todos</option>'
+  selUsu.innerHTML = '<option value="">Usuário</option>'
     + nomUsus.map(v => `<option value="${esc(v)}" ${v===curUsu?'selected':''}>${esc(v)}</option>`).join('');
-  selFil.innerHTML = '<option value="">Filial: Todos</option>'
+  selFil.innerHTML = '<option value="">Filial</option>'
     + fils.map(v => `<option value="${esc(v)}" ${v===curFil?'selected':''}>${esc(v)}</option>`).join('');
-  selDep.innerHTML = '<option value="">Depósito: Todos</option>'
+  selDep.innerHTML = '<option value="">Depósito</option>'
     + codDeps.map(v => `<option value="${esc(v)}" ${v===curDep?'selected':''}>${esc(v)}</option>`).join('');
 
   [selTip,selDes,selSit,selUsu,selFil,selDep].forEach(s =>
-    s.className = 'filter-select' + (s.value ? ' active-filter' : ''));
+    s.className = 'sb-select' + (s.value ? ' sb-select-active' : ''));
 }
 
 function applyFilters() {
@@ -64,7 +64,7 @@ function applyFilters() {
    document.getElementById('filter-nomusu'),
    document.getElementById('filter-fil'),
    document.getElementById('filter-coddep')].forEach(s =>
-    s.className = 'filter-select' + (s.value ? ' active-filter' : ''));
+    s.className = 'sb-select' + (s.value ? ' sb-select-active' : ''));
 
   filteredOrders = orders.filter(o =>
     (!tipMer || o.tipMer === tipMer) &&
@@ -950,7 +950,17 @@ function switchView(view) {
   document.getElementById('view-docks').style.display    = view === 'docks'    ? '' : 'none';
   document.getElementById('tab-calendar').classList.toggle('active', view === 'calendar');
   document.getElementById('tab-docks').classList.toggle('active', view === 'docks');
+  // Update header breadcrumb
+  const title = document.getElementById('hd-page-title');
+  if (title) title.textContent = view === 'calendar' ? 'Calendário' : 'Docas';
   if (view === 'docks') renderDocks();
+}
+
+function toggleOrdersPanel() {
+  const panel = document.getElementById('sidebar');
+  const shell = document.querySelector('.volt-shell');
+  panel.classList.toggle('open');
+  shell.classList.toggle('has-orders');
 }
 
 // ── Docks View (visualização diária com horários) ────────────────
@@ -1370,11 +1380,4 @@ document.addEventListener('keydown', e => {
 });
 
 // ── Sidebar Toggle ────────────────────────────────────────────────
-let sidebarVisible = true;
-
-function toggleSidebar() {
-  const sidebar = document.getElementById('sidebar');
-  sidebarVisible = !sidebarVisible;
-  sidebar.classList.toggle('sidebar-hidden', !sidebarVisible);
-  document.getElementById('toggle-sidebar-btn').textContent = sidebarVisible ? '☰' : '☰ Painel';
-}
+// Replaced by toggleOrdersPanel in switchView section

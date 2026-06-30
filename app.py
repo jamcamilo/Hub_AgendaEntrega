@@ -65,8 +65,7 @@ def fornecedor():
 @app.route("/api/login", methods=["POST"])
 def login():
     """
-    Recebe user/password, armazena na sessão (cookie assinado server-side).
-    Faz uma chamada teste ao Senior para validar as credenciais.
+    Recebe user/password, valida via SOAP antes de armazenar na sessão.
     """
     data = request.get_json() or {}
     user = data.get("user", "").strip()
@@ -75,25 +74,27 @@ def login():
     if not user or not pwd:
         return jsonify({"ok": False, "error": "Usuário e senha são obrigatórios."}), 400
 
-    # Armazena na sessão
+    # Testa a conexão ANTES de armazenar na sessão
+    test_soap = SeniorSoapService(SoapSettings(
+        endpoint   = SOAP_ENDPOINT,
+        user       = user,
+        password   = pwd,
+        encryption = 0,
+    ))
+    try:
+        test_soap.listar_ordens(dat_ini="01/01/2000", dat_fim="01/01/2000")
+    except Exception as e:
+        err = str(e)
+        print(f"  [LOGIN] Falha para user={user}: {err[:200]}")
+        # Qualquer erro SOAP = login inválido
+        return jsonify({"ok": False, "error": "Usuário ou senha inválidos."}), 401
+
+    # Só armazena na sessão após validação bem-sucedida
     session.permanent = True
     session["soap_user"] = user
     session["soap_pass"] = pwd
 
-    # Testa a conexão com uma chamada mínima
-    soap = get_soap()
-    try:
-        soap.listar_ordens(dat_ini="01/01/2000", dat_fim="01/01/2000")
-        return jsonify({"ok": True, "user": user})
-    except Exception as e:
-        err = str(e)
-        # Se o erro for de autenticação, limpa a sessão
-        if "senha" in err.lower() or "password" in err.lower() or "autenticação" in err.lower() or "401" in err:
-            session.pop("soap_user", None)
-            session.pop("soap_pass", None)
-            return jsonify({"ok": False, "error": "Usuário ou senha inválidos."}), 401
-        # Outros erros (ex: sem dados no range) = login ok, só sem dados
-        return jsonify({"ok": True, "user": user})
+    return jsonify({"ok": True, "user": user})
 
 
 @app.route("/api/logout", methods=["POST"])
