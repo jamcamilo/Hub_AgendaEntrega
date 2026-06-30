@@ -84,12 +84,19 @@ def login():
     try:
         test_soap.listar_ordens(dat_ini="01/01/2000", dat_fim="01/01/2000")
     except Exception as e:
-        err = str(e)
-        print(f"  [LOGIN] Falha para user={user}: {err[:200]}")
-        # Qualquer erro SOAP = login inválido
-        return jsonify({"ok": False, "error": "Usuário ou senha inválidos."}), 401
+        err = str(e).lower()
+        print(f"  [LOGIN] Exceção para user={user}: {str(e)[:200]}")
+        # Erros de dados (sem registros, range vazio) = login ok
+        auth_keywords = ['senha', 'password', 'autenticação', 'autenticacao',
+                         'permissão', 'permissao', 'acesso negado', 'unauthorized',
+                         'usuário', 'usuario', 'credencial', 'login', '401']
+        is_auth_error = any(kw in err for kw in auth_keywords)
+        if is_auth_error:
+            return jsonify({"ok": False, "error": "Usuário ou senha inválidos."}), 401
+        # Outros erros (sem dados, timeout) = login ok, credenciais válidas
+        print(f"  [LOGIN] Erro não-auth, login aceito: {str(e)[:100]}")
 
-    # Só armazena na sessão após validação bem-sucedida
+    # Armazena na sessão após validação
     session.permanent = True
     session["soap_user"] = user
     session["soap_pass"] = pwd
