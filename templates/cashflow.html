@@ -166,19 +166,20 @@ function renderContas(contas){
   el.innerHTML=contas.map(c=>{
     const sel=selectedContas.has(c.id);
     const sClass=c.saldo>=0?'pos':'neg';
-    return `<label class="sb-conta ${sel?'selected':''}" onclick="toggleConta('${c.id}')">
-      <input type="checkbox" ${sel?'checked':''} style="pointer-events:none"/>
-      <span>${esc(c.conta||c.numConta)}</span>
+    return `<div class="sb-conta ${sel?'selected':''}" onclick="toggleConta('${c.id}')">
+      <span class="material-icons" style="font-size:18px">${sel?'check_box':'check_box_outline_blank'}</span>
+      <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(c.conta||c.numConta)}</span>
       <span class="sb-conta-saldo ${sClass}">${fmtBR(c.saldo)}</span>
-    </label>`;
+    </div>`;
   }).join('');
 }
 
 function toggleConta(id){
-  if(selectedContas.has(id))selectedContas.delete(id);else selectedContas.add(id);
+  if(selectedContas.has(id)) selectedContas.delete(id); else selectedContas.add(id);
   const emp=document.getElementById('sel-empresa').value;
   renderContas(allContas.filter(c=>c.emp===emp));
-  loadFluxo();
+  // Só recalcula o calendário, sem recarregar do SOAP
+  if(titulos.length) renderCal();
 }
 
 // Fluxo
