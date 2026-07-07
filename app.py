@@ -60,6 +60,10 @@ def agenda():
 def fornecedor():
     return render_template("fornecedor.html")
 
+@app.route("/vendas")
+def vendas():
+    return render_template("vendas.html")
+
 
 # ── Auth ───────────────────────────────────────────────────
 @app.route("/api/login", methods=["POST"])
@@ -282,6 +286,39 @@ def agendar_entrega():
 
     # TODO: Persistir via webservice no Senior
     return jsonify({"ok": True, "agendamento": agendamento})
+
+
+# ── Sales Dashboard API ────────────────────────────────
+SALES_ENDPOINT = "https://ocweb08s1p.seniorcloud.com.br:30991/g5-senior-services/sapiens_SyncSales"
+
+@app.route("/api/vendas", methods=["GET"])
+def get_vendas():
+    if not session.get("soap_user"):
+        return jsonify({"error": "Não autenticado."}), 401
+
+    dat_ini = request.args.get("datIni", "")
+    dat_fim = request.args.get("datFim", "")
+    print(f"  [VENDAS] GET /api/vendas → datIni={dat_ini!r}  datFim={dat_fim!r}")
+
+    soap = SeniorSoapService(SoapSettings(
+        endpoint   = SALES_ENDPOINT,
+        user       = session.get("soap_user", ""),
+        password   = session.get("soap_pass", ""),
+        encryption = 0,
+    ))
+
+    try:
+        dat_ini_br = soap._format_date_br(dat_ini) if dat_ini else ""
+        dat_fim_br = soap._format_date_br(dat_fim) if dat_fim else ""
+        params = (
+            f"<DAT_INI>{dat_ini_br}</DAT_INI>"
+            f"<DAT_FIM>{dat_fim_br}</DAT_FIM>"
+        )
+        xml_text = soap._call("Sales", params)
+        # TODO: Parse response when XML format is provided
+        return jsonify({"raw": xml_text[:5000], "ok": True})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 502
 
 
 @app.route("/api/debug", methods=["GET"])
