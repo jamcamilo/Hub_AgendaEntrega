@@ -44,6 +44,13 @@
   .v-badge{display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:999px;font-size:11px;font-weight:700;white-space:nowrap}
   .v-badge--fam{background:var(--primary-050);color:var(--primary-700)}.v-badge--ori{background:var(--warning-050);color:var(--warning-700)}
   .v-empty{text-align:center;padding:60px 20px;color:var(--gray-400)}.v-empty .material-icons{font-size:48px;color:var(--gray-200);margin-bottom:12px}.v-empty h3{font-size:16px;font-weight:700;color:var(--gray-500);margin-bottom:6px}
+  .rank-pos{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:14px;flex-shrink:0}
+  .rank-1{background:linear-gradient(135deg,#fbbf24,#f59e0b);color:#fff}
+  .rank-2{background:linear-gradient(135deg,#94a3b8,#64748b);color:#fff}
+  .rank-3{background:linear-gradient(135deg,#cd7f32,#a0522d);color:#fff}
+  .rank-n{background:var(--gray-100);color:var(--gray-500)}
+  .rank-bar{height:8px;border-radius:4px;background:var(--gray-100);overflow:hidden;margin-top:4px}
+  .rank-bar-fill{height:100%;border-radius:4px;background:linear-gradient(90deg,#7c3aed,var(--primary-500));transition:width .5s ease}
   .toast-container{position:fixed;bottom:24px;right:24px;z-index:9999;display:flex;flex-direction:column;gap:8px}
   .toast{background:#fff;border:1px solid var(--gray-100);border-radius:10px;padding:12px 16px;display:flex;align-items:center;gap:10px;font-size:13px;box-shadow:0 4px 20px rgba(0,0,0,.12);animation:slideIn .3s ease;min-width:280px}
   .toast.success{border-left:3px solid var(--success-500)}.toast.error{border-left:3px solid var(--error-500)}.toast.info{border-left:3px solid var(--primary-500)}
@@ -89,11 +96,15 @@
     <div class="sb-brand"><div class="sb-logo"><span class="material-icons">trending_up</span></div><div><b>Dashboard</b><span>VENDAS</span></div></div>
     <div class="sb-group">Período</div>
     <div class="sb-filters"><input type="month" class="sb-select" id="filter-month" style="color:rgba(255,255,255,.8)" /></div>
+    <div class="sb-group">Navegação</div>
+    <div class="sb-item active" id="nav-pedidos" onclick="switchTab('pedidos')"><span class="material-icons">receipt_long</span>Pedidos</div>
+    <div class="sb-item" id="nav-ranking" onclick="switchTab('ranking')"><span class="material-icons">emoji_events</span>Top 10 Clientes</div>
     <div class="sb-group">Filtros</div>
     <div class="sb-filters">
       <select class="sb-select" id="filter-familia" onchange="applyFilters()"><option value="">Família</option></select>
       <select class="sb-select" id="filter-origem" onchange="applyFilters()"><option value="">Origem</option></select>
       <select class="sb-select" id="filter-filial" onchange="applyFilters()"><option value="">Filial</option></select>
+      <select class="sb-select" id="filter-rep" onchange="applyFilters()"><option value="">Representante</option></select>
     </div>
     <div class="sb-group">Ações</div>
     <div class="sb-item" onclick="loadVendas()"><span class="material-icons">refresh</span>Atualizar<span class="sb-badge" id="sb-total">0</span></div>
@@ -111,13 +122,24 @@
       <div class="kpi-card"><div class="kpi-header"><span class="kpi-label">Ticket Médio</span><div class="kpi-icon kpi-icon--purple"><span class="material-icons">analytics</span></div></div><div class="kpi-value" id="kpi-ticket">—</div><div class="kpi-sub">por registro</div></div>
       <div class="kpi-card"><div class="kpi-header"><span class="kpi-label">Clientes</span><div class="kpi-icon kpi-icon--orange"><span class="material-icons">groups</span></div></div><div class="kpi-value" id="kpi-cli">—</div><div class="kpi-sub">distintos</div></div>
     </div>
-    <div class="v-table-wrap">
+    <div class="v-table-wrap" id="tab-pedidos">
       <div class="v-table-header">
         <span class="v-table-title">Pedidos de Venda</span>
         <input class="v-table-search" id="table-search" placeholder="Buscar cliente, produto, representante..." oninput="renderTable()" />
         <span id="table-count" style="font-size:12px;color:var(--gray-400)"></span>
       </div>
       <div id="table-body" style="overflow-x:auto;">
+        <div class="v-empty"><span class="material-icons">search</span><h3>Selecione um período</h3><p>Escolha o mês no painel esquerdo.</p></div>
+      </div>
+    </div>
+
+    <!-- RANKING TOP 10 -->
+    <div class="v-table-wrap" id="tab-ranking" style="display:none;">
+      <div class="v-table-header">
+        <span class="v-table-title"><span class="material-icons" style="font-size:20px;vertical-align:middle;color:#7c3aed;">emoji_events</span> Top 10 Clientes</span>
+        <span id="rank-count" style="font-size:12px;color:var(--gray-400)"></span>
+      </div>
+      <div id="rank-body" style="overflow-x:auto;">
         <div class="v-empty"><span class="material-icons">search</span><h3>Selecione um período</h3><p>Escolha o mês no painel esquerdo.</p></div>
       </div>
     </div>
@@ -173,20 +195,34 @@ function populateFilters(){
   const fams=[...new Set(allData.map(d=>d.desFam).filter(Boolean))].sort();
   const oris=[...new Set(allData.map(d=>d.desOri).filter(Boolean))].sort();
   const fils=[...new Set(allData.map(d=>d.codFil).filter(Boolean))].sort();
-  const sf=document.getElementById('filter-familia'),so=document.getElementById('filter-origem'),sfi=document.getElementById('filter-filial');
-  const cf=sf.value,co=so.value,cfi=sfi.value;
+  const reps=[...new Set(allData.map(d=>d.nomRep).filter(Boolean))].sort();
+  const sf=document.getElementById('filter-familia'),so=document.getElementById('filter-origem'),sfi=document.getElementById('filter-filial'),sr=document.getElementById('filter-rep');
+  const cf=sf.value,co=so.value,cfi=sfi.value,cr=sr.value;
   sf.innerHTML='<option value="">Família</option>'+fams.map(v=>`<option value="${esc(v)}" ${v===cf?'selected':''}>${esc(v)}</option>`).join('');
   so.innerHTML='<option value="">Origem</option>'+oris.map(v=>`<option value="${esc(v)}" ${v===co?'selected':''}>${esc(v)}</option>`).join('');
   sfi.innerHTML='<option value="">Filial</option>'+fils.map(v=>`<option value="${esc(v)}" ${v===cfi?'selected':''}>${esc(v)}</option>`).join('');
+  sr.innerHTML='<option value="">Representante</option>'+reps.map(v=>`<option value="${esc(v)}" ${v===cr?'selected':''}>${esc(v)}</option>`).join('');
 }
 function applyFilters(){
   const fam=document.getElementById('filter-familia').value;
   const ori=document.getElementById('filter-origem').value;
   const fil=document.getElementById('filter-filial').value;
-  filtered=allData.filter(d=>(!fam||d.desFam===fam)&&(!ori||d.desOri===ori)&&(!fil||d.codFil===fil));
+  const rep=document.getElementById('filter-rep').value;
+  filtered=allData.filter(d=>(!fam||d.desFam===fam)&&(!ori||d.desOri===ori)&&(!fil||d.codFil===fil)&&(!rep||d.nomRep===rep));
   document.getElementById('sb-total').textContent=filtered.length;
   renderKPIs();
   renderTable();
+  renderRanking();
+}
+
+// Tab switch
+let currentTab='pedidos';
+function switchTab(tab){
+  currentTab=tab;
+  document.getElementById('tab-pedidos').style.display=tab==='pedidos'?'':'none';
+  document.getElementById('tab-ranking').style.display=tab==='ranking'?'':'none';
+  document.getElementById('nav-pedidos').classList.toggle('active',tab==='pedidos');
+  document.getElementById('nav-ranking').classList.toggle('active',tab==='ranking');
 }
 
 // KPIs
@@ -219,6 +255,37 @@ function renderTable(){
       <td class="vlr">R$ ${d.vlrLiq.toLocaleString('pt-BR',{minimumFractionDigits:2})}</td>
       <td>${d.codFil}</td>
     </tr>`).join('')}</tbody></table>`;
+}
+
+// Ranking Top 10
+function renderRanking(){
+  const rb=document.getElementById('rank-body');
+  // Agrupa por cliente
+  const byClient={};
+  filtered.forEach(d=>{
+    const key=d.codCli;
+    if(!byClient[key]) byClient[key]={codCli:d.codCli,nomCli:d.nomCli,total:0,qtd:0};
+    byClient[key].total+=d.vlrLiq;
+    byClient[key].qtd++;
+  });
+  const ranked=Object.values(byClient).sort((a,b)=>b.total-a.total).slice(0,10);
+  const maxVal=ranked.length?ranked[0].total:1;
+  document.getElementById('rank-count').textContent=Object.keys(byClient).length+' clientes no período';
+
+  if(!ranked.length){rb.innerHTML='<div class="v-empty"><span class="material-icons">emoji_events</span><h3>Sem dados</h3><p>Ajuste período ou filtros.</p></div>';return;}
+
+  rb.innerHTML=`<table class="v-table"><thead><tr><th style="width:50px">#</th><th>Cliente</th><th>Pedidos</th><th>Faturamento</th><th style="width:200px">Participação</th></tr></thead><tbody>
+    ${ranked.map((c,i)=>{
+      const pct=maxVal>0?(c.total/maxVal*100):0;
+      const posClass=i===0?'rank-1':i===1?'rank-2':i===2?'rank-3':'rank-n';
+      return `<tr>
+        <td><div class="rank-pos ${posClass}">${i+1}</div></td>
+        <td><div class="cli-name">${esc(c.nomCli)}</div><div class="cli-code">#${c.codCli}</div></td>
+        <td style="font-weight:700">${c.qtd}</td>
+        <td class="vlr">R$ ${c.total.toLocaleString('pt-BR',{minimumFractionDigits:2})}</td>
+        <td><div class="rank-bar"><div class="rank-bar-fill" style="width:${pct.toFixed(1)}%"></div></div><div style="font-size:11px;color:var(--gray-400);margin-top:2px">${pct.toFixed(1)}%</div></td>
+      </tr>`;
+    }).join('')}</tbody></table>`;
 }
 
 // Helpers
