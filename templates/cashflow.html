@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Fluxo de Caixa</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet"/>
+<link rel="stylesheet" href="/static/css/volt.css"/><link rel="stylesheet" href="/static/css/templates.css"/>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}body{font-family:var(--font);background:var(--gray-075);min-height:100vh}
+.auth{position:fixed;inset:0;z-index:10000}.auth.hidden{display:none}
+.auth__brand{background:linear-gradient(180deg,#0a1628 0%,#032839 100%)!important}
+.v-shell{display:grid;height:100vh;grid-template-columns:260px 1fr;grid-template-rows:56px 1fr;grid-template-areas:"sidebar header" "sidebar main"}
+.v-header{grid-area:header;background:#fff;border-bottom:1px solid var(--gray-100);display:flex;align-items:center;justify-content:space-between;padding:0 22px}
+.hd-crumb{display:flex;align-items:center;gap:8px;font-size:13px}.hd-crumb a{color:var(--gray-400);text-decoration:none;font-weight:600}.hd-crumb .sep{color:var(--gray-300)}.hd-crumb b{color:var(--text);font-weight:700}
+.hd-right{display:flex;align-items:center;gap:12px}
+.user-badge{font-size:12px;color:var(--primary-500);background:var(--primary-050);padding:5px 12px;border-radius:8px;display:flex;align-items:center;gap:6px;font-weight:600}
+.user-badge button{background:none;border:none;color:var(--gray-400);cursor:pointer;display:flex;align-items:center}.user-badge button:hover{color:var(--error-500)}
+.v-sidebar{grid-area:sidebar;background:linear-gradient(180deg,#0a1628 0%,#032839 100%);color:#fff;display:flex;flex-direction:column;padding:18px 14px;gap:2px;overflow-y:auto}
+.sb-brand{display:flex;align-items:center;gap:11px;padding:4px 8px 18px}.sb-logo{width:38px;height:38px;border-radius:11px;background:#0891b2;display:flex;align-items:center;justify-content:center;box-shadow:0 6px 14px rgba(8,145,178,.32)}.sb-logo .material-icons{color:#fff;font-size:22px}.sb-brand b{font-size:16px;font-weight:800;letter-spacing:-.2px}.sb-brand span{display:block;font-size:10px;font-weight:700;letter-spacing:1.6px;color:rgba(255,255,255,.5)}
+.sb-group{font-size:10px;font-weight:800;letter-spacing:1.4px;color:rgba(255,255,255,.35);padding:16px 12px 6px;text-transform:uppercase}
+.sb-item{display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:10px;color:rgba(255,255,255,.7);font-size:14px;font-weight:600;cursor:pointer;transition:background .15s,color .15s}.sb-item .material-icons{font-size:20px}.sb-item:hover{background:rgba(255,255,255,.08);color:#fff}.sb-item.active{background:#0891b2;color:#fff}
+.sb-select{width:100%;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.1);border-radius:8px;padding:8px 10px;font-family:var(--font);font-size:12px;color:rgba(255,255,255,.8);cursor:pointer;outline:none;appearance:none;-webkit-appearance:none;transition:border-color .15s}.sb-select:hover{border-color:rgba(255,255,255,.25)}.sb-select option{background:#1a2332;color:#fff}
+.sb-filters{display:flex;flex-direction:column;gap:6px;padding:0 6px}
+.sb-conta{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:8px;background:rgba(255,255,255,.05);font-size:12px;color:rgba(255,255,255,.7);cursor:pointer;transition:background .15s;border:1px solid transparent}
+.sb-conta:hover{background:rgba(255,255,255,.1)}
+.sb-conta.selected{background:rgba(8,145,178,.2);border-color:rgba(8,145,178,.4);color:#fff}
+.sb-conta input{accent-color:#0891b2}
+.sb-conta-saldo{margin-left:auto;font-weight:700;font-size:11px}
+.sb-conta-saldo.pos{color:#10b981}.sb-conta-saldo.neg{color:#f59e0b}
+.v-main{grid-area:main;overflow:auto;padding:24px}
+/* KPIs */
+.kpi-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:14px;margin-bottom:20px}
+.kpi-card{background:#fff;border:1px solid var(--gray-100);border-radius:14px;padding:16px;box-shadow:0 1px 3px rgba(0,0,0,.04)}
+.kpi-label{font-size:12px;font-weight:600;color:var(--gray-400);margin-bottom:6px}.kpi-value{font-size:22px;font-weight:800;letter-spacing:-.4px;line-height:1.1}
+.kpi-rec{color:var(--success-600)}.kpi-pag{color:var(--error-600)}.kpi-saldo{color:var(--primary-600)}.kpi-ini{color:#0891b2}
+/* Calendar */
+.cf-cal{background:#fff;border:1px solid var(--gray-100);border-radius:14px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.04)}
+.cf-nav{display:flex;align-items:center;gap:12px;padding:14px 18px;border-bottom:1px solid var(--gray-100)}
+.cf-nav h2{font-size:18px;font-weight:700;min-width:200px;text-align:center}
+.cf-nav button{background:var(--gray-050);border:1px solid var(--gray-100);border-radius:8px;width:34px;height:34px;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all .15s;color:var(--gray-500)}.cf-nav button:hover{border-color:var(--primary-400);color:var(--primary-500)}
+.cf-grid{display:grid;grid-template-columns:repeat(7,1fr)}
+.cf-day-hdr{text-align:center;font-size:11px;font-weight:700;color:var(--gray-400);padding:10px 4px;text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid var(--gray-100)}
+.cf-cell{min-height:100px;border-right:1px solid var(--gray-050);border-bottom:1px solid var(--gray-050);padding:6px 8px;font-size:11px;position:relative;transition:background .15s}
+.cf-cell:nth-child(7n){border-right:none}
+.cf-cell:hover{background:var(--gray-050)}
+.cf-cell.other{background:var(--gray-050);opacity:.4}
+.cf-cell.today{background:rgba(8,145,178,.06);box-shadow:inset 0 3px 0 #0891b2}
+.cf-cell.past{opacity:.5}
+.cf-day-num{font-weight:700;font-size:13px;color:var(--text);margin-bottom:4px}
+.cf-cell.today .cf-day-num{color:#0891b2}
+.cf-entry{display:flex;justify-content:space-between;padding:2px 4px;border-radius:4px;font-size:10px;font-weight:600;margin-bottom:2px;cursor:default}
+.cf-entry.rec{background:rgba(16,185,129,.08);color:var(--success-700)}.cf-entry.pag{background:rgba(239,68,68,.06);color:var(--error-600)}
+.cf-acum{position:absolute;bottom:4px;right:6px;font-size:10px;font-weight:700;padding:2px 6px;border-radius:4px;background:rgba(8,145,178,.1);color:#0891b2}
+.cf-acum.neg{background:rgba(239,68,68,.08);color:var(--error-600)}
+/* Tooltip */
+.cf-cell .cf-tooltip{display:none;position:absolute;left:50%;top:100%;transform:translateX(-50%);z-index:100;background:#fff;border:1px solid var(--gray-200);border-radius:10px;padding:10px 12px;box-shadow:0 8px 24px rgba(0,0,0,.12);min-width:240px;max-width:320px;font-size:11px}
+.cf-cell:hover .cf-tooltip{display:block}
+.tt-title{font-weight:700;font-size:12px;margin-bottom:6px;color:var(--text)}.tt-row{display:flex;justify-content:space-between;padding:2px 0;border-bottom:1px solid var(--gray-050)}.tt-row:last-child{border:none}
+/* Toast */
+.toast-container{position:fixed;bottom:24px;right:24px;z-index:9999;display:flex;flex-direction:column;gap:8px}
+.toast{background:#fff;border:1px solid var(--gray-100);border-radius:10px;padding:12px 16px;display:flex;align-items:center;gap:10px;font-size:13px;box-shadow:0 4px 20px rgba(0,0,0,.12);animation:slideIn .3s ease;min-width:280px}
+.toast.success{border-left:3px solid var(--success-500)}.toast.error{border-left:3px solid var(--error-500)}.toast.info{border-left:3px solid var(--primary-500)}
+@keyframes slideIn{from{transform:translateX(100%);opacity:0}to{transform:translateX(0);opacity:1}}
+@keyframes slideOut{from{opacity:1}to{transform:translateX(120%);opacity:0}}
+@media(max-width:860px){.v-shell{grid-template-columns:1fr;grid-template-areas:"header" "main"}.v-sidebar{display:none}}
+</style>
+</head>
+<body>
+<!-- LOGIN -->
+<div class="auth" id="login-overlay">
+  <div class="auth__brand"><div class="auth__blob auth__blob--1"></div><div class="auth__blob auth__blob--2"></div>
+    <div class="auth__brand-logo"><div class="ic"><span class="material-icons">account_balance</span></div>Fluxo de Caixa</div>
+    <div class="auth__brand-content"><h2>Controle<br>financeiro<br>inteligente.</h2><p>Calendário com recebimentos, pagamentos e saldo acumulado integrado ao ERP Senior.</p>
+      <div class="auth__brand-points"><div class="auth__brand-point"><div class="ic2"><span class="material-icons">calendar_month</span></div>Calendário financeiro</div><div class="auth__brand-point"><div class="ic2"><span class="material-icons">account_balance_wallet</span></div>Saldos por conta</div><div class="auth__brand-point"><div class="ic2"><span class="material-icons">trending_up</span></div>Projeção acumulada</div></div>
+    </div><div class="auth__brand-foot">© 2026 Fluxo de Caixa · ERP Senior</div></div>
+  <div class="auth__form"><div class="auth__card"><h1 class="auth__title">Entrar</h1><p class="auth__subtitle">Acesse com suas credenciais Senior.</p>
+    <div id="login-error" style="display:none;width:100%;margin-bottom:16px;padding:12px;font-size:13px;font-weight:600;background:var(--error-050);color:var(--error-700);border:1px solid var(--error-200);border-radius:8px"></div>
+    <div class="volt-field auth__field"><label class="volt-field__label">Usuário</label><input class="volt-field__input" id="login-user" type="text" placeholder="usuario.ext"/></div>
+    <div class="volt-field auth__field"><label class="volt-field__label">Senha</label><input class="volt-field__input" id="login-pass" type="password" placeholder="••••••••"/></div>
+    <button class="volt-btn volt-btn--primary auth__btn" id="login-btn" onclick="doLogin()">Entrar</button>
+    <div style="text-align:center;margin-top:16px"><a href="/" class="auth__link">← Voltar ao início</a></div>
+  </div></div>
+</div>
+
+<!-- SHELL -->
+<div class="v-shell">
+  <aside class="v-sidebar">
+    <div class="sb-brand"><div class="sb-logo"><span class="material-icons">account_balance</span></div><div><b>Fluxo de</b><span>CAIXA</span></div></div>
+    <div class="sb-group">Empresa</div>
+    <div class="sb-filters"><select class="sb-select" id="sel-empresa" onchange="onEmpresaChange()"><option value="">Carregando...</option></select></div>
+    <div class="sb-group">Contas Bancárias</div>
+    <div id="contas-list" style="padding:0 6px;display:flex;flex-direction:column;gap:4px"><div style="font-size:11px;color:rgba(255,255,255,.4);padding:8px">Selecione uma empresa</div></div>
+    <div class="sb-group">Ações</div>
+    <div class="sb-item active" onclick="loadFluxo()"><span class="material-icons">refresh</span>Atualizar</div>
+    <div class="sb-item" onclick="location.href='/'"><span class="material-icons">home</span>Início</div>
+    <div class="sb-item" onclick="doLogout()" style="margin-top:auto"><span class="material-icons">logout</span>Sair</div>
+  </aside>
+  <header class="v-header">
+    <div class="hd-crumb"><a href="/">Início</a><span class="sep">/</span><b>Fluxo de Caixa</b></div>
+    <div class="hd-right"><div class="user-badge" id="user-badge" style="display:none"><span class="material-icons" style="font-size:18px">person</span><span id="user-name"></span><button onclick="doLogout()"><span class="material-icons" style="font-size:16px">logout</span></button></div></div>
+  </header>
+  <main class="v-main" id="main-content">
+    <div class="kpi-grid">
+      <div class="kpi-card"><div class="kpi-label">Saldo Inicial</div><div class="kpi-value kpi-ini" id="kpi-ini">—</div></div>
+      <div class="kpi-card"><div class="kpi-label">Recebimentos</div><div class="kpi-value kpi-rec" id="kpi-rec">—</div></div>
+      <div class="kpi-card"><div class="kpi-label">Pagamentos</div><div class="kpi-value kpi-pag" id="kpi-pag">—</div></div>
+      <div class="kpi-card"><div class="kpi-label">Saldo Período</div><div class="kpi-value kpi-saldo" id="kpi-saldo">—</div></div>
+    </div>
+    <div class="cf-cal">
+      <div class="cf-nav">
+        <button onclick="prevMonth()"><span class="material-icons">chevron_left</span></button>
+        <h2 id="cf-title">—</h2>
+        <button onclick="nextMonth()"><span class="material-icons">chevron_right</span></button>
+        <button onclick="goToday()" style="margin-left:8px;width:auto;padding:0 12px;font-size:12px;font-weight:600">Hoje</button>
+      </div>
+      <div class="cf-grid" id="cf-grid"></div>
+    </div>
+  </main>
+</div>
+<div class="toast-container" id="toasts"></div>
+
+{% raw %}
+<script>
+const MESES=['','Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+const DIAS=['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
+let allContas=[],selectedContas=new Set(),titulos=[],curYear,curMonth;
+
+document.addEventListener('DOMContentLoaded',()=>{
+  const n=new Date();curYear=n.getFullYear();curMonth=n.getMonth()+1;
+  checkSession();
+  document.getElementById('login-pass')?.addEventListener('keydown',e=>{if(e.key==='Enter')doLogin();});
+});
+
+// Auth
+async function checkSession(){try{const r=await fetch('/api/session');const d=await r.json();if(d.logged){hideLogin(d.user);loadSaldos();}else showLogin();}catch(e){showLogin();}}
+function showLogin(){document.getElementById('login-overlay').style.display='';}
+function hideLogin(u){document.getElementById('login-overlay').style.display='none';document.getElementById('user-badge').style.display='flex';document.getElementById('user-name').textContent=u;}
+async function doLogin(){const u=document.getElementById('login-user').value.trim(),p=document.getElementById('login-pass').value.trim(),err=document.getElementById('login-error'),btn=document.getElementById('login-btn');if(!u||!p){err.textContent='Preencha.';err.style.display='';return;}err.style.display='none';btn.disabled=true;btn.textContent='Autenticando...';try{const r=await fetch('/api/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({user:u,password:p})});const d=await r.json();if(d.ok){hideLogin(d.user);loadSaldos();}else{err.textContent=d.error||'Falha.';err.style.display='';}}catch(e){err.textContent='Erro: '+e.message;err.style.display='';}btn.disabled=false;btn.textContent='Entrar';}
+async function doLogout(){await fetch('/api/logout',{method:'POST'});showLogin();}
+
+// Saldos
+async function loadSaldos(){
+  showToast('Carregando saldos...','info');
+  try{const r=await fetch('/api/cashflow/saldos');const d=await r.json();if(d.error){showToast(d.error,'error');return;}
+    allContas=d.contas||[];
+    const emps={};allContas.forEach(c=>{if(!emps[c.emp])emps[c.emp]=c.empresa;});
+    const sel=document.getElementById('sel-empresa');
+    sel.innerHTML='<option value="">Selecione...</option>'+Object.entries(emps).sort().map(([k,v])=>`<option value="${k}">${k} - ${esc(v)}</option>`).join('');
+    if(Object.keys(emps).length===1){sel.value=Object.keys(emps)[0];onEmpresaChange();}
+  }catch(e){showToast('Erro: '+e.message,'error');}
+}
+
+function onEmpresaChange(){
+  const emp=document.getElementById('sel-empresa').value;
+  const empContas=allContas.filter(c=>c.emp===emp);
+  selectedContas=new Set(empContas.filter(c=>c.saldo!==0).map(c=>c.id));
+  renderContas(empContas);
+  loadFluxo();
+}
+
+function renderContas(contas){
+  const el=document.getElementById('contas-list');
+  if(!contas.length){el.innerHTML='<div style="font-size:11px;color:rgba(255,255,255,.4);padding:8px">Nenhuma conta</div>';return;}
+  el.innerHTML=contas.map(c=>{
+    const sel=selectedContas.has(c.id);
+    const sClass=c.saldo>=0?'pos':'neg';
+    return `<label class="sb-conta ${sel?'selected':''}" onclick="toggleConta('${c.id}')">
+      <input type="checkbox" ${sel?'checked':''} style="pointer-events:none"/>
+      <span>${esc(c.conta||c.numConta)}</span>
+      <span class="sb-conta-saldo ${sClass}">${fmtBR(c.saldo)}</span>
+    </label>`;
+  }).join('');
+}
+
+function toggleConta(id){
+  if(selectedContas.has(id))selectedContas.delete(id);else selectedContas.add(id);
+  const emp=document.getElementById('sel-empresa').value;
+  renderContas(allContas.filter(c=>c.emp===emp));
+  loadFluxo();
+}
+
+// Fluxo
+async function loadFluxo(){
+  const emp=document.getElementById('sel-empresa').value;if(!emp)return;
+  const y=curYear,m=curMonth;
+  const dim=new Date(y,m,0).getDate();
+  const di=`${y}-${String(m).padStart(2,'0')}-01`;
+  const df=`${y}-${String(m).padStart(2,'0')}-${dim}`;
+  showToast('Carregando fluxo...','info');
+  try{const r=await fetch(`/api/cashflow/fluxo?datIni=${di}&datFim=${df}`);const d=await r.json();
+    if(d.error){showToast(d.error,'error');return;}
+    titulos=(d.titulos||[]).filter(t=>t.emp===emp);
+    renderCal();
+    showToast(`${titulos.length} títulos.`,'success');
+  }catch(e){showToast('Erro: '+e.message,'error');}
+}
+
+function renderCal(){
+  const y=curYear,m=curMonth;
+  document.getElementById('cf-title').textContent=`${MESES[m]} ${y}`;
+  const grid=document.getElementById('cf-grid');
+  const today=new Date();const todayStr=`${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
+  const dim=new Date(y,m,0).getDate();
+  const firstDow=(new Date(y,m-1,1).getDay());
+  // Saldo inicial
+  const empContas=allContas.filter(c=>c.emp===document.getElementById('sel-empresa').value);
+  let saldoIni=empContas.filter(c=>selectedContas.has(c.id)).reduce((s,c)=>s+c.saldo,0);
+  // By date
+  const byDate={};titulos.forEach(t=>{if(!byDate[t.dataIso])byDate[t.dataIso]=[];byDate[t.dataIso].push(t);});
+  // KPIs
+  const totalRec=titulos.filter(t=>t.tipo==='REC').reduce((s,t)=>s+t.valor,0);
+  const totalPag=titulos.filter(t=>t.tipo==='PAG').reduce((s,t)=>s+t.valor,0);
+  document.getElementById('kpi-ini').textContent='R$ '+fmtBR(saldoIni);
+  document.getElementById('kpi-rec').textContent='R$ '+fmtBR(totalRec);
+  document.getElementById('kpi-pag').textContent='R$ '+fmtBR(totalPag);
+  document.getElementById('kpi-saldo').textContent='R$ '+fmtBR(totalRec-totalPag);
+  // Grid
+  let html=DIAS.map(d=>`<div class="cf-day-hdr">${d}</div>`).join('');
+  let acum=saldoIni;
+  // Padding before
+  for(let i=0;i<firstDow;i++) html+=`<div class="cf-cell other"></div>`;
+  for(let d=1;d<=dim;d++){
+    const ds=`${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const isToday=ds===todayStr;const isPast=ds<todayStr;
+    const ents=byDate[ds]||[];
+    const rec=ents.filter(e=>e.tipo==='REC').reduce((s,e)=>s+e.valor,0);
+    const pag=ents.filter(e=>e.tipo==='PAG').reduce((s,e)=>s+e.valor,0);
+    if(!isPast) acum+=(rec-pag);
+    const cls=['cf-cell'];if(isToday)cls.push('today');if(isPast)cls.push('past');
+    html+=`<div class="${cls.join(' ')}">
+      <div class="cf-day-num">${d}</div>
+      ${rec>0?`<div class="cf-entry rec">+ ${fmtBR(rec)}</div>`:''}
+      ${pag>0?`<div class="cf-entry pag">- ${fmtBR(pag)}</div>`:''}
+      ${ents.length&&!isPast?`<div class="cf-acum ${acum<0?'neg':''}">Σ ${fmtBR(acum)}</div>`:''}
+      ${ents.length?`<div class="cf-tooltip"><div class="tt-title">${String(d).padStart(2,'0')}/${String(m).padStart(2,'0')}/${y} · ${ents.length} título(s)</div>${ents.map(e=>`<div class="tt-row"><span style="color:${e.tipo==='REC'?'var(--success-600)':'var(--error-600)'}">${e.tipo}</span><span>${esc((e.nome||'').substring(0,40))}</span><span style="font-weight:700">${fmtBR(e.valor)}</span></div>`).join('')}</div>`:''}
+    </div>`;
+  }
+  // Padding after
+  const totalCells=firstDow+dim;const rem=totalCells%7;if(rem>0)for(let i=0;i<7-rem;i++) html+=`<div class="cf-cell other"></div>`;
+  grid.innerHTML=html;
+}
+
+function prevMonth(){curMonth--;if(curMonth<1){curMonth=12;curYear--;}loadFluxo();}
+function nextMonth(){curMonth++;if(curMonth>12){curMonth=1;curYear++;}loadFluxo();}
+function goToday(){const n=new Date();curYear=n.getFullYear();curMonth=n.getMonth()+1;loadFluxo();}
+
+// Helpers
+function fmtBR(v){try{const n=Number(v);return n.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});}catch(e){return '0,00';}}
+function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function showToast(msg,type){const c=document.getElementById('toasts'),t=document.createElement('div');t.className='toast '+type;t.innerHTML='<span>'+({'success':'✓','error':'✕','info':'→'}[type]||'·')+'</span><span>'+msg+'</span>';c.appendChild(t);setTimeout(()=>{t.style.animation='slideOut .3s ease forwards';setTimeout(()=>t.remove(),300)},3500);}
+</script>
+{% endraw %}
+</body>
+</html>

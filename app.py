@@ -10,8 +10,13 @@ Uso:
 
 import os
 import secrets
+import requests
+import urllib3
+from datetime import datetime
 from flask import Flask, render_template, jsonify, request, session
 from soap_service import SeniorSoapService, SoapSettings
+
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 app = Flask(__name__)
 # Chave secreta para criptografar a sessão (cookies assinados)
@@ -63,6 +68,139 @@ def fornecedor():
 @app.route("/vendas")
 def vendas():
     return render_template("vendas.html")
+
+@app.route("/cashflow")
+def cashflow():
+    return render_template("cashflow.html")
+
+
+# ── CashFlow API ──────────────────────────────────────
+CF_ENDPOINTS = {
+    "cashflow": "https://ocweb08s1p.seniorcloud.com.br:30991/g5-senior-services/sapiens_SyncFinancing",
+    "saldos":   "https://ocweb08s1p.seniorcloud.com.br:30991/g5-senior-services/sapiens_Synccom.Senior.g5.co.mfi.tes.contas",
+}
+
+def cf_soap_call(endpoint, envelope):
+    """SOAP call for CashFlow"""
+    import time as _time
+    start = _time.time()
+    try:
+        r = requests.post(endpoint, data=envelope.encode("utf-8"),
+            headers={"Content-Type": "text/xml; charset=utf-8", "SOAPAction": '""'},
+            verify=False, timeout=30)
+        ms = int((_time.time() - start) * 1000)
+        if r.status_code >= 400:
+            return None, f"HTTP {r.status_code}"
+        return r.text, None
+    except Exception as ex:
+        return None, str(ex)
+
+@app.route("/api/cashflow/saldos", methods=["GET"])
+def cf_saldos():
+    if not session.get("soap_user"):
+        return jsonify({"error": "Não autenticado."}), 401
+    user = session["soap_user"]
+    pwd = session["soap_pass"]
+
+    env = f"""<?xml version="1.0" encoding="UTF-8"?>
+<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:ser="http://services.senior.com.br">
+<soapenv:Header/><soapenv:Body>
+<ser:obterSaldo><user>{user}</user><password>{pwd}</password><encryption></encryption>
+<parameters><flowInstanceID></flowInstanceID><flowName></flowName><indicePagina></indicePagina><limitePagina></limitePagina></parameters>
+</ser:obterSaldo></soapenv:Body></soapenv:Envelope>"""
+
+    text, err = cf_soap_call(CF_ENDPOINTS["saldos"], env)
+    if err:
+        return jsonify({"error": err}), 502
+
+    import xml.etree.ElementTree as ET
+    root = ET.fromstring(text)
+    contas = []
+    for el in root.iter():
+        tag = el.tag.split('}')[-1] if '}' in el.tag else el.tag
+        if tag != "extrato":
+            continue
+        def _g(t):
+            for ch in el:
+                ct = ch.tag.split('}')[-1] if '}' in ch.tag else ch.tag
+                if ct.lower() == t.lower():
+                    return (ch.text or "").strip()
+            return ""
+        try: saldo = float(_g("saldo") or 0)
+        except: saldo = 0.0
+        contas.append({
+            "emp": _g("codigoEmpresa"), "fil": _g("codigoFilial"),
+            "conta": _g("descricaoConta"), "numConta": _g("numeroConta"),
+            "saldo": saldo, "empresa": _g("nomeEmpresa"), "filial": _g("nomeFilial"),
+            "id": f"{_g('codigoEmpresa')}_{_g('codigoFilial')}_{_g('numeroConta')}".replace(" ","_"),
+        })
+    return jsonify({"contas": contas})
+
+@app.route("/api/cashflow/fluxo", methods=["GET"])
+def cf_fluxo():
+    if not session.get("soap_user"):
+        return jsonify({"error": "Não autenticado."}), 401
+    user = session["soap_user"]
+    pwd = session["soap_pass"]
+    dat_ini = request.args.get("datIni", "")
+    dat_fim = request.args.get("datFim", "")
+
+    soap = SeniorSoapService(SoapSettings(endpoint=CF_ENDPOINTS["cashflow"], user=user, password=pwd, encryption=0))
+    dat_ini_br = soap._format_date_br(dat_ini) if dat_ini else ""
+    dat_fim_br = soap._format_date_br(dat_fim) if dat_fim else ""
+
+    env = f"""<?xml version="1.0" encoding="UTF-8"?>
+<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:ser="http://services.senior.com.br">
+<soapenv:Header/><soapenv:Body>
+<ser:RequestVlr><user>{user}</user><password>{pwd}</password><encryption></encryption>
+<parameters><datIni>{dat_ini_br}</datIni><datFim>{dat_fim_br}</datFim>
+<flowInstanceID></flowInstanceID><flowName></flowName></parameters>
+</ser:RequestVlr></soapenv:Body></soapenv:Envelope>"""
+
+    text, err = cf_soap_call(CF_ENDPOINTS["cashflow"], env)
+    if err:
+        return jsonify({"error": err}), 502
+
+    import xml.etree.ElementTree as ET
+    root = ET.fromstring(text)
+    titulos = []
+    for el in root.iter():
+        tag = el.tag.split('}')[-1] if '}' in el.tag else el.tag
+        if tag != "titulos":
+            continue
+        def _g(t):
+            for ch in el:
+                ct = ch.tag.split('}')[-1] if '}' in ch.tag else ch.tag
+                if ct.lower() == t.lower():
+                    return (ch.text or "").strip()
+            return ""
+        try: valor = float(_g("valor") or 0)
+        except: valor = 0.0
+        if valor == 0:
+            continue
+        tipo_raw = (_g("pagRec") or "").upper().strip()
+        if tipo_raw not in ("PAG", "REC"):
+            if any(x in tipo_raw for x in ("PAG","PG","CP","DES")): tipo_raw = "PAG"
+            elif any(x in tipo_raw for x in ("REC","RC","CR","ENT")): tipo_raw = "REC"
+        raw_vct = _g("vct")
+        data_iso = ""
+        data_br = raw_vct
+        for fmt_str in ("%d/%m/%Y", "%Y-%m-%d"):
+            try:
+                dt = datetime.strptime(raw_vct, fmt_str)
+                data_iso = dt.strftime("%Y-%m-%d")
+                data_br = dt.strftime("%d/%m/%Y")
+                break
+            except: continue
+
+        titulos.append({
+            "dataIso": data_iso, "dataBr": data_br,
+            "tipo": tipo_raw, "valor": abs(valor),
+            "nome": _g("nome"), "emp": _g("emp"), "fil": _g("fil"),
+        })
+
+    print(f"  [CASHFLOW] {len(titulos)} títulos parseados")
+    return jsonify({"titulos": titulos})
 
 
 # ── Auth ───────────────────────────────────────────────────
