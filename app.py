@@ -315,8 +315,48 @@ def get_vendas():
             f"<DAT_FIM>{dat_fim_br}</DAT_FIM>"
         )
         xml_text = soap._call("Sales", params)
-        # TODO: Parse response when XML format is provided
-        return jsonify({"raw": xml_text[:5000], "ok": True})
+
+        # Parse XML response
+        import xml.etree.ElementTree as ET
+        root = ET.fromstring(xml_text)
+        registros = []
+        for el in root.iter():
+            tag = el.tag.split('}')[-1] if '}' in el.tag else el.tag
+            if tag == "dados":
+                def _get(t):
+                    for ch in el:
+                        ct = ch.tag.split('}')[-1] if '}' in ch.tag else ch.tag
+                        if ct == t:
+                            return (ch.text or "").strip()
+                    return ""
+                vlr_fin = 0.0
+                vlr_liq = 0.0
+                try: vlr_fin = float(_get("NVlrFin") or 0)
+                except: pass
+                try: vlr_liq = float(_get("NVlrLiq") or 0)
+                except: pass
+                registros.append({
+                    "codPro":  _get("CCodPro"),
+                    "desPro":  _get("CDesPro"),
+                    "codFam":  _get("CCodFam"),
+                    "desFam":  _get("CDesFam"),
+                    "codOri":  _get("CCodOri"),
+                    "desOri":  _get("CDesOri"),
+                    "tnsPro":  _get("CTnsPro"),
+                    "desTns":  _get("CDesTns"),
+                    "nomCli":  _get("CNomCli"),
+                    "codCli":  _get("NCodCli"),
+                    "nomRep":  _get("CNomRep"),
+                    "codRep":  _get("NCodRep"),
+                    "datEmi":  _get("DDatEmi"),
+                    "codEmp":  _get("NCodEmp"),
+                    "codFil":  _get("NCodFil"),
+                    "vlrFin":  vlr_fin,
+                    "vlrLiq":  vlr_liq,
+                })
+
+        print(f"  [VENDAS] {len(registros)} registros parseados")
+        return jsonify({"data": registros, "total": len(registros), "ok": True})
     except Exception as e:
         return jsonify({"error": str(e)}), 502
 
