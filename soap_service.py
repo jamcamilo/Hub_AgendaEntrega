@@ -154,12 +154,14 @@ class SeniorSoapService:
                 raise Exception(fault)
 
             # Detecta erroExecucao com conteúdo (ignora tags vazias/self-closing)
-            m = re.search(r"<erroExecucao[^/>]*>([^<]+)</erroExecucao>", resp.text, re.S | re.I)
-            if m:
-                erro = m.group(1).strip()
-                if erro:
+            try:
+                m = re.search(r"<erroExecucao[^/>]*>([^<]+)</erroExecucao>", resp.text, re.S | re.I)
+                if m and m.group(1).strip():
+                    erro = m.group(1).strip()
                     self.debug.last_error = erro
-                    raise Exception(erro)
+                    raise Exception(f"Senior: {erro}")
+            except re.error:
+                pass  # regex error, ignore
 
             return resp.text
 
@@ -231,6 +233,20 @@ class SeniorSoapService:
         except (ValueError, TypeError):
             return oracle_str
 
+    @staticmethod
+    def _safe_float(val: str) -> float:
+        """Converte string para float, tratando formato BR (44.312,50 ou 44,312)."""
+        if not val:
+            return 0.0
+        try:
+            return float(val)
+        except ValueError:
+            try:
+                clean = val.replace(".", "").replace(",", ".")
+                return float(clean)
+            except:
+                return 0.0
+
     # ── Business methods ────────────────────────────────────
     def listar_ordens(self, dat_ini: str = "", dat_fim: str = "", cgc_cpf: str = "0") -> List[PurchaseOrder]:
         """
@@ -252,7 +268,7 @@ class SeniorSoapService:
                     id            = self._find(el, "id"),
                     supplier      = self._find(el, "fornecedor"),
                     product       = self._find(el, "produto"),
-                    qty           = float(self._find(el, "quantidade") or 0),
+                    qty           = self._safe_float(self._find(el, "quantidade")),
                     delivery_date = self._parse_date(self._find(el, "dataEntrega")),
                     emp           = self._find(el, "emp"),
                     fil           = self._find(el, "fil"),
