@@ -11,8 +11,12 @@
   <link rel="stylesheet" href="/static/css/volt.css" />
   <link rel="stylesheet" href="/static/css/templates.css" />
   <link rel="stylesheet" href="/static/css/site.css?v=40">
+  <link rel="stylesheet" href="/static/css/responsive.css?v=1">
 </head>
 <body>
+
+<!-- SIDEBAR OVERLAY -->
+<div class="sidebar-overlay" id="sidebar-overlay" onclick="closeDrawer()"></div>
 
 <!-- LOGIN (Volt auth pattern) -->
 <div class="auth" id="login-overlay" style="position:fixed;inset:0;z-index:10000;transition:opacity 0.3s;">
@@ -56,8 +60,11 @@
 
 <!-- HEADER (minimal) -->
 <header class="volt-header" id="main-header">
-  <div class="hd-crumb">
-    <a href="/">Início</a><span class="sep">/</span><b id="hd-page-title">Calendário</b>
+  <div style="display:flex;align-items:center;gap:10px;">
+    <button class="hamburger" onclick="toggleDrawer()"><span class="material-icons">menu</span></button>
+    <div class="hd-crumb">
+      <a href="/">Início</a><span class="sep">/</span><b id="hd-page-title">Calendário</b>
+    </div>
   </div>
   <div class="hd-actions">
     <div id="save-bar" style="display:none;align-items:center;gap:8px;">

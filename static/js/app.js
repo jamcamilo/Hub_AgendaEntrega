@@ -1381,3 +1381,15 @@ document.addEventListener('keydown', e => {
 
 // ── Sidebar Toggle ────────────────────────────────────────────────
 // Replaced by toggleOrdersPanel in switchView section
+
+// ── Mobile Drawer ─────────────────────────────────────────────────
+function toggleDrawer() {
+  const sb = document.querySelector('.volt-sidebar');
+  const ov = document.getElementById('sidebar-overlay');
+  sb.classList.toggle('drawer-open');
+  ov.classList.toggle('open');
+}
+function closeDrawer() {
+  document.querySelector('.volt-sidebar')?.classList.remove('drawer-open');
+  document.getElementById('sidebar-overlay')?.classList.remove('open');
+}

@@ -66,8 +66,10 @@
 @keyframes slideOut{from{opacity:1}to{transform:translateX(120%);opacity:0}}
 @media(max-width:860px){.v-shell{grid-template-columns:1fr;grid-template-areas:"header" "main"}.v-sidebar{display:none}}
 </style>
+<link rel="stylesheet" href="/static/css/responsive.css?v=1">
 </head>
 <body>
+<div class="sidebar-overlay" id="sidebar-overlay" onclick="closeDrawer()"></div>
 <!-- LOGIN -->
 <div class="auth" id="login-overlay">
   <div class="auth__brand"><div class="auth__blob auth__blob--1"></div><div class="auth__blob auth__blob--2"></div>
@@ -98,7 +100,10 @@
     <div class="sb-item" onclick="doLogout()" style="margin-top:auto"><span class="material-icons">logout</span>Sair</div>
   </aside>
   <header class="v-header">
-    <div class="hd-crumb"><a href="/">Início</a><span class="sep">/</span><b>Fluxo de Caixa</b></div>
+    <div style="display:flex;align-items:center;gap:10px;">
+      <button class="hamburger" onclick="toggleDrawer()"><span class="material-icons">menu</span></button>
+      <div class="hd-crumb"><a href="/">Início</a><span class="sep">/</span><b>Fluxo de Caixa</b></div>
+    </div>
     <div class="hd-right"><div class="user-badge" id="user-badge" style="display:none"><span class="material-icons" style="font-size:18px">person</span><span id="user-name"></span><button onclick="doLogout()"><span class="material-icons" style="font-size:16px">logout</span></button></div></div>
   </header>
   <main class="v-main" id="main-content">
@@ -246,6 +251,10 @@ function renderCal(){
 function prevMonth(){curMonth--;if(curMonth<1){curMonth=12;curYear--;}loadFluxo();}
 function nextMonth(){curMonth++;if(curMonth>12){curMonth=1;curYear++;}loadFluxo();}
 function goToday(){const n=new Date();curYear=n.getFullYear();curMonth=n.getMonth()+1;loadFluxo();}
+
+// Drawer
+function toggleDrawer(){document.querySelector('.v-sidebar')?.classList.toggle('drawer-open');document.getElementById('sidebar-overlay')?.classList.toggle('open');}
+function closeDrawer(){document.querySelector('.v-sidebar')?.classList.remove('drawer-open');document.getElementById('sidebar-overlay')?.classList.remove('open');}
 
 // Helpers
 function fmtBR(v){try{const n=Number(v);return n.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});}catch(e){return '0,00';}}

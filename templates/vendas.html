@@ -58,8 +58,10 @@
   @keyframes slideOut{from{opacity:1}to{transform:translateX(120%);opacity:0}}
   @media(max-width:860px){.v-shell{grid-template-columns:1fr;grid-template-areas:"header" "main"}.v-sidebar{display:none}}
 </style>
+<link rel="stylesheet" href="/static/css/responsive.css?v=1">
 </head>
 <body>
+<div class="sidebar-overlay" id="sidebar-overlay" onclick="closeDrawer()"></div>
 
 <!-- LOGIN -->
 <div class="auth" id="login-overlay">
@@ -112,7 +114,10 @@
     <div class="sb-item" onclick="doLogout()" style="margin-top:auto"><span class="material-icons">logout</span>Sair</div>
   </aside>
   <header class="v-header">
-    <div class="hd-crumb"><a href="/">Início</a><span class="sep">/</span><b>Dashboard Vendas</b></div>
+    <div style="display:flex;align-items:center;gap:10px;">
+      <button class="hamburger" onclick="toggleDrawer()"><span class="material-icons">menu</span></button>
+      <div class="hd-crumb"><a href="/">Início</a><span class="sep">/</span><b>Dashboard Vendas</b></div>
+    </div>
     <div class="hd-right"><div class="user-badge" id="user-badge" style="display:none"><span class="material-icons" style="font-size:18px">person</span><span id="user-name"></span><button onclick="doLogout()" title="Sair"><span class="material-icons" style="font-size:16px">logout</span></button></div></div>
   </header>
   <main class="v-main">
@@ -287,6 +292,10 @@ function renderRanking(){
       </tr>`;
     }).join('')}</tbody></table>`;
 }
+
+// Drawer
+function toggleDrawer(){document.querySelector('.v-sidebar')?.classList.toggle('drawer-open');document.getElementById('sidebar-overlay')?.classList.toggle('open');}
+function closeDrawer(){document.querySelector('.v-sidebar')?.classList.remove('drawer-open');document.getElementById('sidebar-overlay')?.classList.remove('open');}
 
 // Helpers
 function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
