@@ -280,6 +280,8 @@ class SeniorSoapService:
                     cod_dep       = self._find(el, "codDep"),
                     itens         = self._parse_itens(el),
                 ))
+        # Remove ordens vazias (sem ID)
+        orders = [o for o in orders if o.id]
         return orders
 
     @staticmethod
