@@ -1,0 +1,346 @@
+/* ══════════════════════════════════════════════════════════
+   responsive.css — Mobile & Tablet adaptations
+   Breakpoints: ≤860px (tablet), ≤600px (phone)
+   ══════════════════════════════════════════════════════════ */
+
+/* ── Hamburger Button (hidden on desktop) ─────────────── */
+.hamburger {
+  display: none;
+  background: none;
+  border: none;
+  color: var(--gray-500);
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 8px;
+  transition: background .15s;
+}
+.hamburger:hover { background: var(--gray-100); }
+.hamburger .material-icons { font-size: 26px; }
+
+/* ── Sidebar Overlay (mobile drawer) ──────────────────── */
+.sidebar-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,.5);
+  z-index: 999;
+  opacity: 0;
+  transition: opacity .25s;
+}
+.sidebar-overlay.open { opacity: 1; }
+
+/* ══════════════════════════════════════════════════════════
+   TABLET (≤ 860px)
+   ══════════════════════════════════════════════════════════ */
+@media (max-width: 860px) {
+  .hamburger { display: flex; }
+
+  /* ── Shell layouts (all modules) ── */
+  .volt-shell,
+  .v-shell {
+    grid-template-columns: 1fr !important;
+    grid-template-rows: 56px 1fr !important;
+    grid-template-areas: "header" "main" !important;
+  }
+
+  /* ── Sidebar → off-canvas drawer ── */
+  .volt-sidebar,
+  .v-sidebar {
+    position: fixed !important;
+    left: -280px;
+    top: 0;
+    bottom: 0;
+    width: 260px;
+    z-index: 1000;
+    transition: left .3s cubic-bezier(.4,0,.2,1);
+    box-shadow: none;
+  }
+  .volt-sidebar.drawer-open,
+  .v-sidebar.drawer-open {
+    left: 0;
+    box-shadow: 4px 0 24px rgba(0,0,0,.3);
+  }
+
+  .sidebar-overlay { display: block; pointer-events: none; }
+  .sidebar-overlay.open { pointer-events: auto; }
+
+  /* ── Orders panel (Agenda) ── */
+  .orders-panel {
+    position: fixed !important;
+    right: -320px;
+    top: 0;
+    bottom: 0;
+    width: 300px;
+    z-index: 1000;
+    transition: right .3s cubic-bezier(.4,0,.2,1);
+  }
+  .orders-panel.open {
+    right: 0 !important;
+    display: flex !important;
+    box-shadow: -4px 0 24px rgba(0,0,0,.2);
+  }
+  .volt-shell.has-orders {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* ── Auth split-screen → full form ── */
+  .auth {
+    grid-template-columns: 1fr !important;
+  }
+  .auth__brand {
+    display: none !important;
+  }
+  .auth__form {
+    padding: 24px !important;
+  }
+
+  /* ── Landing split → full choose ── */
+  .landing {
+    grid-template-columns: 1fr !important;
+  }
+  .landing__brand {
+    display: none !important;
+  }
+
+  /* ── Calendar toolbar ── */
+  .cal-toolbar {
+    flex-wrap: wrap !important;
+    gap: 8px !important;
+    padding: 10px 12px !important;
+  }
+  .cal-nav h2,
+  .cal-title {
+    font-size: 16px !important;
+    min-width: auto !important;
+  }
+
+  /* ── Dock assignment popover ── */
+  .dock-assign-pop {
+    position: fixed !important;
+    left: 50% !important;
+    top: 50% !important;
+    transform: translate(-50%, -50%) !important;
+    width: 90vw !important;
+    max-width: 340px !important;
+  }
+
+  /* ── Modals ── */
+  .modal {
+    width: 95vw !important;
+    max-height: 90vh !important;
+    margin: 5vh auto !important;
+  }
+
+  /* ── Context menu ── */
+  .ctx-menu {
+    position: fixed !important;
+    left: 50% !important;
+    top: 50% !important;
+    transform: translate(-50%, -50%) !important;
+    width: 90vw !important;
+    max-width: 360px !important;
+  }
+
+  /* ── KPI cards ── */
+  .kpi-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 10px !important;
+  }
+
+  /* ── Table horizontal scroll ── */
+  .v-table-wrap {
+    overflow-x: auto;
+  }
+  .v-table {
+    min-width: 700px;
+  }
+
+  /* ── CashFlow calendar ── */
+  .cf-cell {
+    min-height: 80px !important;
+    padding: 4px 5px !important;
+    font-size: 10px !important;
+  }
+  .cf-day-num {
+    font-size: 12px !important;
+  }
+  .cf-entry {
+    font-size: 9px !important;
+    padding: 1px 3px !important;
+  }
+  .cf-acum {
+    font-size: 9px !important;
+    padding: 1px 4px !important;
+  }
+  .cf-nav h2 {
+    font-size: 16px !important;
+    min-width: 180px !important;
+  }
+
+  /* ── Docks timeline ── */
+  .docks-timeline {
+    min-width: 600px !important;
+  }
+  .docks-wrap {
+    overflow-x: auto !important;
+  }
+}
+
+
+/* ══════════════════════════════════════════════════════════
+   PHONE (≤ 600px)
+   ══════════════════════════════════════════════════════════ */
+@media (max-width: 600px) {
+
+  /* ── Header compact ── */
+  .volt-header,
+  .v-header {
+    padding: 0 12px !important;
+    height: 50px !important;
+  }
+  .hd-crumb {
+    font-size: 12px !important;
+  }
+  .hd-crumb a { display: none; }
+  .hd-crumb .sep { display: none; }
+
+  /* ── User badge compact ── */
+  .user-badge {
+    padding: 3px 8px !important;
+    font-size: 11px !important;
+  }
+  .user-badge span:not(.material-icons) {
+    display: none;
+  }
+
+  /* ── Main content padding ── */
+  .volt-main,
+  .v-main {
+    padding: 12px !important;
+  }
+
+  /* ── KPI cards → 1 col on very small ── */
+  .kpi-grid {
+    grid-template-columns: 1fr 1fr !important;
+    gap: 8px !important;
+  }
+  .kpi-card {
+    padding: 12px !important;
+  }
+  .kpi-value {
+    font-size: 20px !important;
+  }
+  .kpi-label {
+    font-size: 11px !important;
+  }
+
+  /* ── Calendar cells compact ── */
+  .cal-grid {
+    font-size: 10px !important;
+  }
+  .cal-truck {
+    padding: 3px 5px !important;
+    font-size: 10px !important;
+    gap: 3px !important;
+  }
+  .truck-emoji {
+    font-size: 12px !important;
+  }
+  .truck-info {
+    overflow: hidden;
+  }
+  .truck-id {
+    font-size: 10px !important;
+  }
+  .truck-name {
+    font-size: 9px !important;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 80px;
+  }
+  .truck-btns {
+    display: none !important;
+  }
+  .truck-tooltip {
+    display: none !important;
+  }
+  .cal-day-header {
+    font-size: 10px !important;
+    padding: 6px 2px !important;
+  }
+
+  /* ── CashFlow calendar phone ── */
+  .cf-cell {
+    min-height: 65px !important;
+    padding: 3px 4px !important;
+  }
+  .cf-day-num {
+    font-size: 11px !important;
+  }
+  .cf-entry {
+    font-size: 8px !important;
+  }
+  .cf-acum {
+    font-size: 8px !important;
+  }
+  .cf-tooltip {
+    display: none !important;
+  }
+
+  /* ── Fornecedor cards ── */
+  .forn-form {
+    grid-template-columns: 1fr !important;
+  }
+  .forn-card-header {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 6px !important;
+  }
+
+  /* ── Landing cards ── */
+  .landing__cards {
+    gap: 10px !important;
+  }
+  .landing__card {
+    padding: 16px 14px !important;
+  }
+  .landing__card-icon {
+    width: 42px !important;
+    height: 42px !important;
+  }
+  .landing__card-info h3 {
+    font-size: 14px !important;
+  }
+  .landing__card-info p {
+    font-size: 12px !important;
+  }
+
+  /* ── Table search ── */
+  .v-table-header {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 8px !important;
+  }
+  .v-table-search {
+    width: 100% !important;
+  }
+
+  /* ── Login ── */
+  .auth__card {
+    padding: 24px 20px !important;
+  }
+  .auth__title {
+    font-size: 22px !important;
+  }
+  .login-box {
+    padding: 28px 20px !important;
+    width: 95vw !important;
+  }
+
+  /* ── Save bar compact ── */
+  .volt-btn--sm {
+    padding: 6px 10px !important;
+    font-size: 12px !important;
+  }
+}
