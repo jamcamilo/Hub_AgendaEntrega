@@ -166,10 +166,9 @@
   </header>
   <main class="v-main" id="main-content">
     <div class="kpi-grid">
-      <div class="kpi-card"><div class="kpi-label">Saldo inicial</div><div class="kpi-value kpi-ini" id="kpi-ini">—</div><div class="kpi-sub" id="kpi-ini-sub">&nbsp;</div></div>
-      <div class="kpi-card"><div class="kpi-label">Entradas</div><div class="kpi-value kpi-rec" id="kpi-rec">—</div><div class="kpi-sub">&nbsp;</div></div>
-      <div class="kpi-card"><div class="kpi-label">Saídas</div><div class="kpi-value kpi-pag" id="kpi-pag">—</div><div class="kpi-sub">&nbsp;</div></div>
-      <div class="kpi-card"><div class="kpi-label">Saldo final</div><div class="kpi-value kpi-saldo" id="kpi-fim">—</div><div class="kpi-sub" id="kpi-fim-sub">&nbsp;</div></div>
+      <div class="kpi-card"><div class="kpi-label">Entradas</div><div class="kpi-value kpi-rec" id="kpi-rec">—</div></div>
+      <div class="kpi-card"><div class="kpi-label">Saídas</div><div class="kpi-value kpi-pag" id="kpi-pag">—</div></div>
+      <div class="kpi-card"><div class="kpi-label">Resultado do período</div><div class="kpi-value kpi-saldo" id="kpi-res">—</div></div>
     </div>
     <div class="fx-card">
       <div class="fx-bar">
@@ -367,10 +366,7 @@ function montar(){
   // soma das sinteticas (de baixo para cima)
   const somar=id=>{const n=nos[id];(filhos[id]||[]).forEach(f=>{somar(f);const c=nos[f];for(let i=0;i<cols.length;i++){n.v[i]+=c.v[i];n.q[i]+=c.q[i];}});};
   (filhos[0]||[]).forEach(somar);
-  // saldos por coluna
-  const ini=[],fim=[];let s=salIni;
-  cols.forEach((c,i)=>{ini.push(s);s+=ent[i]+sai[i];fim.push(s);});
-  return {cols,nos,filhos,semCla,ent,sai,ini,fim,foraPlano};
+  return {cols,nos,filhos,semCla,ent,sai,foraPlano};
 }
 function total(a){return a.reduce((x,y)=>x+y,0);}
 function zerado(n){return n.v.every(x=>Math.abs(x)<0.005);}
@@ -384,25 +380,18 @@ function render(){
   document.getElementById('fx-badge').classList.toggle('p',visao==='P');
   modelo=montar();
   if(!modelo){
-    ['kpi-ini','kpi-rec','kpi-pag','kpi-fim'].forEach(k=>document.getElementById(k).textContent='—');
-    document.getElementById('kpi-ini-sub').innerHTML='&nbsp;';document.getElementById('kpi-fim-sub').innerHTML='&nbsp;';
+    ['kpi-rec','kpi-pag','kpi-res'].forEach(k=>document.getElementById(k).textContent='—');
     if(!carregando)box.innerHTML='<div class="fx-empty"><span class="material-icons">account_tree</span>Selecione a empresa e clique em Atualizar.</div>';
     note.style.display='none';return;
   }
   const M=modelo,cols=M.cols;
   const te=total(M.ent),ts=total(M.sai);
-  document.getElementById('kpi-ini').textContent='R$ '+fmtBR(salIni);
-  document.getElementById('kpi-ini-sub').textContent=visao==='R'?'Antes de '+br(ultimo.ini):'Saldo atual das contas';
   document.getElementById('kpi-rec').textContent='R$ '+fmtBR(te);
   document.getElementById('kpi-pag').textContent='R$ '+fmtBR(Math.abs(ts));
-  document.getElementById('kpi-fim').textContent='R$ '+fmtBR(salIni+te+ts);
-  document.getElementById('kpi-fim-sub').textContent='Em '+br(ultimo.fim);
+  document.getElementById('kpi-res').textContent='R$ '+fmtBR(te+ts);
   document.getElementById('fx-title').textContent=`${br(ultimo.ini)} a ${br(ultimo.fim)}`;
 
   let h='<table class="fx-tbl"><thead><tr><th>Conta financeira</th>'+cols.map(c=>`<th>${esc(c.lbl)}</th>`).join('')+'<th class="tot">Total</th></tr></thead><tbody>';
-  const linhaSaldo=(nome,arr)=>`<tr class="saldo"><td>${nome}</td>${arr.map(v=>cel(v)).join('')}<td class="tot"></td></tr>`;
-  h+=linhaSaldo('Saldo inicial',M.ini);
-  h+='<tr class="gap"><td colspan="'+(cols.length+2)+'"></td></tr>';
   const linha=(n,nivel)=>{
     if(opts.zer&&zerado(n))return '';
     const kids=(M.filhos[n.ctaFin]||[]).filter(k=>!(opts.zer&&zerado(M.nos[k])));
@@ -423,14 +412,12 @@ function render(){
   h+='<tr class="gap"><td colspan="'+(cols.length+2)+'"></td></tr>';
   h+=`<tr class="sum"><td>Entradas</td>${M.ent.map(v=>cel(v)).join('')}${cel(te,'tot')}</tr>`;
   h+=`<tr class="sum"><td>Saídas</td>${M.sai.map(v=>cel(v)).join('')}${cel(ts,'tot')}</tr>`;
-  h+=`<tr class="sum"><td>Variação do período</td>${M.ent.map((v,i)=>cel(v+M.sai[i])).join('')}${cel(te+ts,'tot')}</tr>`;
-  h+=linhaSaldo('Saldo final',M.fim).replace('<td class="tot"></td>',cel(salIni+te+ts,'tot'));
+  h+=`<tr class="saldo"><td>Resultado do período</td>${M.ent.map((v,i)=>cel(v+M.sai[i])).join('')}${cel(te+ts,'tot')}</tr>`;
   h+='</tbody></table>';
   box.innerHTML=h;
   const avisos=[];
-  avisos.push(visao==='R'?'Realizado: movimentos da tesouraria pela data do movimento, abertos pelo rateio dos títulos baixados.':'Projetado: títulos em aberto pelo vencimento prorrogado, abertos pelo rateio de entrada. O saldo inicial é o saldo atual das contas.');
-  if(visao==='P'&&ultimo.ini>iso(new Date()))avisos.push('O início está no futuro: títulos que vencem entre hoje e '+br(ultimo.ini)+' não entram no saldo inicial.');
-  if(!opts.trf||!opts.cre)avisos.push('Há lançamentos ocultos pelas opções de exibição; os saldos consideram apenas o que está na tela.');
+  avisos.push(visao==='R'?'Realizado: movimentos da tesouraria pela data do movimento, abertos pelo rateio dos títulos baixados.':'Projetado: títulos em aberto pelo vencimento prorrogado, abertos pelo rateio de entrada.');
+  if(!opts.trf||!opts.cre)avisos.push('Há lançamentos ocultos pelas opções de exibição; os totais consideram apenas o que está na tela.');
   if(M.foraPlano.size)avisos.push('Contas fora do plano somadas em "Sem classificação": '+[...M.foraPlano].join(', ')+'.');
   avisos.push('Clique num valor de conta analítica para ver os documentos.');
   note.innerHTML=avisos.map(esc).join('<br>');note.style.display='';
@@ -482,13 +469,12 @@ const num=v=>(Math.round(v*100)/100).toFixed(2).replace('.',',');
 function exportCsv(){
   if(!modelo){showToast('Nada para exportar.','error');return;}
   const M=modelo,L=[['Classificação','Conta','Descrição','Nível',...M.cols.map(c=>c.lbl),'Total']];
-  L.push(['','','Saldo inicial','',...M.ini.map(num),'']);
   const rec=(id,nv)=>{const n=M.nos[id];if(opts.zer&&zerado(n))return;L.push([n.claFin,n.ctaFin,n.desCta,nv,...n.v.map(num),num(total(n.v))]);(M.filhos[id]||[]).forEach(f=>rec(f,nv+1));};
   (M.filhos[0]||[]).forEach(id=>rec(id,1));
   if(!zerado(M.semCla))L.push(['',0,M.semCla.desCta,1,...M.semCla.v.map(num),num(total(M.semCla.v))]);
   L.push(['','','Entradas','',...M.ent.map(num),num(total(M.ent))]);
   L.push(['','','Saídas','',...M.sai.map(num),num(total(M.sai))]);
-  L.push(['','','Saldo final','',...M.fim.map(num),'']);
+  L.push(['','','Resultado do período','',...M.ent.map((v,i)=>num(v+M.sai[i])),num(total(M.ent)+total(M.sai))]);
   baixar(`fluxo_${visao==='R'?'realizado':'projetado'}_${ultimo.ini}_${ultimo.fim}.csv`,L);
 }
 function exportDocs(){
