@@ -203,6 +203,175 @@ def cf_fluxo():
     return jsonify({"titulos": titulos})
 
 
+# ── Fluxo de Caixa por Plano Financeiro (portas FluxoPlano/FluxoValores/FluxoDetalhe) ──
+FX_ENDPOINT = CF_ENDPOINTS["cashflow"]          # sapiens_SyncFinancing
+FX_TIMEOUT = int(os.environ.get("FLUXO_SOAP_TIMEOUT", "110"))   # abaixo do --timeout 120 do gunicorn
+
+@app.route("/fluxo")
+def fluxo():
+    return render_template("fluxo.html")
+
+def _fx_tag(el):
+    return el.tag.split('}')[-1] if '}' in el.tag else el.tag
+
+def _fx_campo(root, nome):
+    """Primeiro campo simples (sem filhos) com esse nome."""
+    for el in root.iter():
+        if _fx_tag(el) == nome and len(el) == 0:
+            return (el.text or "").strip()
+    return ""
+
+def _fx_lista(root, nome):
+    """Linhas de uma lista de saída: cada uma vira dict campo -> texto."""
+    linhas = []
+    for el in root.iter():
+        if _fx_tag(el) == nome and len(el) > 0:
+            linhas.append({_fx_tag(ch): (ch.text or "").strip() for ch in el})
+    return linhas
+
+def _fx_num(v):
+    try:
+        return float(str(v).replace(",", ".")) if v not in (None, "") else 0.0
+    except ValueError:
+        return 0.0
+
+def _fx_int(v):
+    try:
+        return int(float(str(v).replace(",", "."))) if v not in (None, "") else 0
+    except ValueError:
+        return 0
+
+def _fx_iso(v):
+    """Data do Senior (DD/MM/YYYY ou YYYY-MM-DD...) -> YYYY-MM-DD."""
+    v = (v or "").strip()
+    for fmt in ("%d/%m/%Y", "%Y-%m-%d", "%Y-%m-%dT%H:%M:%S"):
+        try:
+            return datetime.strptime(v[:19] if "T" in v else v[:10], fmt).strftime("%Y-%m-%d")
+        except ValueError:
+            continue
+    return ""
+
+def _fx_br(iso):
+    try:
+        return datetime.strptime(iso, "%Y-%m-%d").strftime("%d/%m/%Y")
+    except (ValueError, TypeError):
+        return ""
+
+def _fx_call(porta, params):
+    """Chama uma porta do sapiens_SyncFinancing. params: lista de (campo, valor) ou ('ccos', [contas])."""
+    from xml.sax.saxutils import escape as _x
+    import xml.etree.ElementTree as ET
+    user = session["soap_user"]
+    pwd = session["soap_pass"]
+    corpo = ""
+    for k, v in params:
+        if k == "ccos":
+            corpo += "".join(f"<ccos><numCco>{_x(str(c))}</numCco></ccos>" for c in v)
+        else:
+            corpo += f"<{k}>{_x(str(v))}</{k}>"
+    env = f"""<?xml version="1.0" encoding="UTF-8"?>
+<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:ser="http://services.senior.com.br">
+<soapenv:Header/><soapenv:Body>
+<ser:{porta}><user>{_x(user)}</user><password>{_x(pwd)}</password><encryption>0</encryption>
+<parameters>{corpo}</parameters>
+</ser:{porta}></soapenv:Body></soapenv:Envelope>"""
+    try:
+        r = requests.post(FX_ENDPOINT, data=env.encode("utf-8"),
+                          headers={"Content-Type": "text/xml; charset=utf-8", "SOAPAction": '""'},
+                          verify=False, timeout=FX_TIMEOUT)
+    except requests.Timeout:
+        return None, "O Senior demorou demais para responder. Reduza o período."
+    except Exception as ex:
+        return None, f"Falha ao chamar o Senior: {ex}"
+    if r.status_code >= 400:
+        return None, f"Senior respondeu HTTP {r.status_code}."
+    try:
+        root = ET.fromstring(r.text)
+    except ET.ParseError:
+        return None, "Resposta inválida do Senior."
+    erro = _fx_campo(root, "erroExecucao")
+    if erro:
+        return None, erro
+    if _fx_campo(root, "resultado").upper() == "ERRO":
+        return None, _fx_campo(root, "retorno") or "O Senior devolveu ERRO."
+    return root, None
+
+def _fx_filtros():
+    """Lê e valida os filtros comuns da query string."""
+    emp = _fx_int(request.args.get("codEmp"))
+    fil = _fx_int(request.args.get("codFil"))
+    visao = (request.args.get("visao") or "R").upper()
+    ini = request.args.get("datIni", "")
+    fim = request.args.get("datFim", "")
+    ccos = [c.strip() for c in (request.args.get("ccos") or "").split(",") if c.strip()]
+    if emp <= 0:
+        return None, "Selecione a empresa."
+    if visao not in ("R", "P"):
+        return None, "Visão inválida."
+    if not _fx_br(ini) or not _fx_br(fim):
+        return None, "Período inválido."
+    return {"emp": emp, "fil": fil, "visao": visao, "ini": ini, "fim": fim, "ccos": ccos}, None
+
+@app.route("/api/fluxo/plano", methods=["GET"])
+def fx_plano():
+    if not session.get("soap_user"):
+        return jsonify({"error": "Não autenticado."}), 401
+    emp = _fx_int(request.args.get("codEmp"))
+    if emp <= 0:
+        return jsonify({"error": "Selecione a empresa."}), 400
+    root, err = _fx_call("FluxoPlano", [("codEmp", emp)])
+    if err:
+        return jsonify({"error": err}), 502
+    contas = [{
+        "ctaFin": _fx_int(c.get("ctaFin")), "claFin": c.get("claFin", ""), "desCta": c.get("desCta", ""),
+        "nivFin": _fx_int(c.get("nivFin")), "anaSin": c.get("anaSin", ""), "natFin": c.get("natFin", ""),
+        "ctaPai": _fx_int(c.get("ctaPai")),
+    } for c in _fx_lista(root, "contas")]
+    return jsonify({"contas": contas})
+
+@app.route("/api/fluxo/valores", methods=["GET"])
+def fx_valores():
+    if not session.get("soap_user"):
+        return jsonify({"error": "Não autenticado."}), 401
+    f, err = _fx_filtros()
+    if err:
+        return jsonify({"error": err}), 400
+    root, err = _fx_call("FluxoValores", [
+        ("codEmp", f["emp"]), ("codFil", f["fil"]), ("visao", f["visao"]),
+        ("datIni", _fx_br(f["ini"])), ("datFim", _fx_br(f["fim"])), ("ccos", f["ccos"])])
+    if err:
+        return jsonify({"error": err}), 502
+    valores = [{
+        "ctaFin": _fx_int(v.get("ctaFin")), "data": _fx_iso(v.get("datLan")), "origem": v.get("origem", ""),
+        "tipLan": v.get("tipLan", ""), "valor": _fx_num(v.get("vlrLan")), "qtdDoc": _fx_int(v.get("qtdDoc")),
+    } for v in _fx_lista(root, "valores")]
+    return jsonify({"salIni": _fx_num(_fx_campo(root, "salIni")), "valores": valores,
+                    "retorno": _fx_campo(root, "retorno")})
+
+@app.route("/api/fluxo/detalhe", methods=["GET"])
+def fx_detalhe():
+    if not session.get("soap_user"):
+        return jsonify({"error": "Não autenticado."}), 401
+    f, err = _fx_filtros()
+    if err:
+        return jsonify({"error": err}), 400
+    cta = _fx_int(request.args.get("ctaFin"))
+    root, err = _fx_call("FluxoDetalhe", [
+        ("codEmp", f["emp"]), ("codFil", f["fil"]), ("visao", f["visao"]),
+        ("datIni", _fx_br(f["ini"])), ("datFim", _fx_br(f["fim"])), ("ctaFin", cta), ("ccos", f["ccos"])])
+    if err:
+        return jsonify({"error": err}), 502
+    docs = [{
+        "origem": d.get("origem", ""), "tipLan": d.get("tipLan", ""), "data": _fx_iso(d.get("datDoc")),
+        "codFil": _fx_int(d.get("codFil")), "numTit": d.get("numTit", ""), "codTpt": d.get("codTpt", ""),
+        "codPar": _fx_int(d.get("codPar")), "nomPar": d.get("nomPar", ""), "numCco": d.get("numCco", ""),
+        "seqBco": d.get("seqBco", ""), "codTns": d.get("codTns", ""), "hisDoc": d.get("hisDoc", ""),
+        "valor": _fx_num(d.get("vlrDoc")),
+    } for d in _fx_lista(root, "docs")]
+    return jsonify({"docs": docs, "total": _fx_num(_fx_campo(root, "totDoc")),
+                    "retorno": _fx_campo(root, "retorno")})
+
+
 # ── Auth ───────────────────────────────────────────────────
 @app.route("/api/login", methods=["POST"])
 def login():
