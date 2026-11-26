@@ -458,13 +458,14 @@ async function abrirDet(cta,i){
     const rs=await Promise.all(ctas.map(k=>api('/api/fluxo/detalhe?'+qs({...ultimo,ini:c.ini,fim:c.fim},{ctaFin:k}))));
     docs=rs.flatMap((d,j)=>(d.docs||[]).map(x=>({...x,_cta:ctas[j]}))).filter(visivel);
     if(cta<0){
-      // mesmo criterio da grade: a grade recebe os valores somados por conta, dia, origem e tipo
-      // e manda o grupo inteiro para receitas (soma >= 0) ou despesas (soma < 0)
-      const g={};docs.forEach(x=>{const k=[x._cta,x.data,x.origem,x.tipLan].join('|');g[k]=(g[k]||0)+x.valor;});
-      // grupos que zeram no dia (ex.: as duas pernas de uma transferencia) nao entram em nenhuma das duas
-      docs=docs.filter(x=>{const s=Math.round(g[[x._cta,x.data,x.origem,x.tipLan].join('|')]*100)/100;return cta===-1?s>0:s<0;});
+      // mesmo criterio da regra FluxoValores: sem conta, credito e debito vem em linhas separadas;
+      // so a transferencia (T) vem somada por conta, dia e origem e vai pelo sinal da soma
+      const chv=x=>[x._cta,x.data,x.origem,x.tipLan,x.tipLan==='T'?0:Math.sign(x.valor)].join('|');
+      const g={};docs.forEach(x=>{g[chv(x)]=(g[chv(x)]||0)+x.valor;});
+      // grupos que zeram no dia (as duas pernas de uma transferencia) nao entram em nenhuma das duas
+      docs=docs.filter(x=>{const s=Math.round(g[chv(x)]*100)/100;return cta===-1?s>0:s<0;});
     }
-    document.getElementById('md-ret').textContent=rs.map(d=>d.retorno).filter(Boolean).join(' | ');
+    document.getElementById('md-ret').textContent=cta<0?'':rs.map(d=>d.retorno).filter(Boolean).join(' | ');
     renderDocs();
   }catch(e){docs=[];document.getElementById('md-body').innerHTML=`<div class="fx-empty"><span class="material-icons">error_outline</span>${esc(e.message)}</div>`;}
 }
