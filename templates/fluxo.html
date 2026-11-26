@@ -355,12 +355,26 @@ function montar(){
   plano.forEach(c=>{nos[c.ctaFin]={...c,v:new Array(cols.length).fill(0),q:new Array(cols.length).fill(0)};});
   plano.forEach(c=>{const p=nos[c.ctaPai]?c.ctaPai:0;(filhos[p]=filhos[p]||[]).push(c.ctaFin);});
   Object.values(filhos).forEach(l=>l.sort((a,b)=>String(nos[a].claFin).localeCompare(String(nos[b].claFin),'pt-BR',{numeric:true})));
-  const semCla={ctaFin:0,claFin:'',desCta:'Sem classificação no plano',anaSin:'A',nivFin:1,v:new Array(cols.length).fill(0),q:new Array(cols.length).fill(0),sem:true};
+  const vazio=()=>({v:new Array(cols.length).fill(0),q:new Array(cols.length).fill(0)});
+  const semCla={ctaFin:0,claFin:'',desCta:'Sem classificação no plano',anaSin:'A',nivFin:1,...vazio(),sem:true};
+  // Contas virtuais "sem classificacao": ultima conta do grupo de receitas (valores +) e do de despesas (valores -)
+  const grupoSem=(nat,re)=>{
+    const cand=plano.filter(c=>c.anaSin==='S'&&c.natFin===nat&&(filhos[c.ctaFin]||[]).length&&!(filhos[c.ctaFin]||[]).some(f=>nos[f].natFin&&nos[f].natFin!==nat));
+    cand.sort((a,b)=>(re.test(b.desCta)-re.test(a.desCta))||(a.nivFin-b.nivFin)||String(a.claFin).localeCompare(String(b.claFin),'pt-BR',{numeric:true}));
+    return cand[0];
+  };
+  const virtual={};
+  [[-1,'C',/RECEIT/i,'Receitas sem classificação'],[-2,'D',/DESP/i,'Despesas sem classificação']].forEach(([id,nat,re,nome])=>{
+    const g=grupoSem(nat,re);if(!g)return;
+    nos[id]={ctaFin:id,claFin:'',desCta:nome,anaSin:'A',nivFin:(g.nivFin||0)+1,natFin:nat,ctaPai:g.ctaFin,...vazio(),sem:true,virtual:true};
+    filhos[g.ctaFin].push(id);virtual[nat]=nos[id];
+  });
   const ent=new Array(cols.length).fill(0),sai=new Array(cols.length).fill(0);
   let foraPlano=new Set();
   valores.forEach(v=>{
     if(!visivel(v))return;const i=ix[chave(v.data,gg)];if(i===undefined)return;
-    let n=nos[v.ctaFin];if(!n||!v.ctaFin){n=semCla;if(v.ctaFin)foraPlano.add(v.ctaFin);}
+    let n=v.ctaFin>0?nos[v.ctaFin]:null;
+    if(!n){if(v.ctaFin)foraPlano.add(v.ctaFin);n=(v.valor>=0?virtual.C:virtual.D)||semCla;}
     n.v[i]+=v.valor;n.q[i]+=v.qtdDoc;
     if(v.valor>=0)ent[i]+=v.valor;else sai[i]+=v.valor;
   });
@@ -399,7 +413,7 @@ function render(){
     const sint=!n.sem&&kids.length>0,aberto=expanded.has(n.ctaFin);
     const cls=['cta',sint?'sint':'ana',nivel===0?'lvl1':''].join(' ');
     const car=sint?`<span class="car ${aberto?'open':''}" onclick="toggleNo(${n.ctaFin})"><span class="material-icons">chevron_right</span></span>`:'<span class="sp"></span>';
-    const nome=`<span class="cla">${esc(n.claFin||'')}</span>${esc(n.desCta||('Conta '+n.ctaFin))}`;
+    const nome=n.virtual?`<i style="color:var(--warning-700,#b45309)">${esc(n.desCta)}</i>`:`<span class="cla">${esc(n.claFin||'')}</span>${esc(n.desCta||('Conta '+n.ctaFin))}`;
     const clicavel=!sint;
     let r=`<tr class="${cls}"><td title="${esc((n.claFin||'')+' '+(n.desCta||''))} (${n.ctaFin})"><div class="fx-name" style="padding-left:${nivel*16}px">${car}<span ${clicavel?`style="cursor:pointer" onclick="abrirDet(${n.ctaFin},-1)"`:''}>${nome}</span></div></td>`;
     r+=n.v.map((v,i)=>cel(v,clicavel&&Math.abs(v)>=0.005?'clk':'',clicavel&&Math.abs(v)>=0.005?`onclick="abrirDet(${n.ctaFin},${i})" title="${n.q[i]} documento(s)"`:'')).join('');
@@ -419,7 +433,8 @@ function render(){
   const avisos=[];
   avisos.push(visao==='R'?'Realizado: movimentos da tesouraria pela data do movimento, abertos pelo rateio dos títulos baixados.':'Projetado: títulos em aberto pelo vencimento prorrogado, abertos pelo rateio de entrada.');
   if(!opts.trf||!opts.cre)avisos.push('Há lançamentos ocultos pelas opções de exibição; os totais consideram apenas o que está na tela.');
-  if(M.foraPlano.size)avisos.push('Contas fora do plano somadas em "Sem classificação": '+[...M.foraPlano].join(', ')+'.');
+  avisos.push('Lançamentos sem conta financeira ficam em "Receitas sem classificação" (valores positivos) e "Despesas sem classificação" (negativos).');
+  if(M.foraPlano.size)avisos.push('Contas fora do plano também somadas nelas: '+[...M.foraPlano].join(', ')+'.');
   avisos.push('Clique num valor de conta analítica para ver os documentos.');
   note.innerHTML=avisos.map(esc).join('<br>');note.style.display='';
 }
@@ -437,9 +452,13 @@ async function abrirDet(cta,i){
   document.getElementById('md-busca').value='';document.getElementById('md-ret').textContent='';document.getElementById('md-tot').textContent='—';
   document.getElementById('md-body').innerHTML='<div class="fx-empty"><span class="material-icons spin">autorenew</span>Buscando documentos...</div>';
   document.getElementById('md').classList.add('open');
-  try{const d=await api('/api/fluxo/detalhe?'+qs({...ultimo,ini:c.ini,fim:c.fim},{ctaFin:cta}));
-    docs=(d.docs||[]).filter(visivel);
-    document.getElementById('md-ret').textContent=d.retorno||'';
+  try{
+    // conta virtual ou sem classificacao: busca a conta 0 e as contas fora do plano, depois separa pelo sinal
+    const ctas=cta>0?[cta]:[0,...modelo.foraPlano];
+    const rs=await Promise.all(ctas.map(k=>api('/api/fluxo/detalhe?'+qs({...ultimo,ini:c.ini,fim:c.fim},{ctaFin:k}))));
+    docs=rs.flatMap(d=>d.docs||[]).filter(visivel);
+    if(cta===-1)docs=docs.filter(x=>x.valor>=0);else if(cta===-2)docs=docs.filter(x=>x.valor<0);
+    document.getElementById('md-ret').textContent=rs.map(d=>d.retorno).filter(Boolean).join(' | ');
     renderDocs();
   }catch(e){docs=[];document.getElementById('md-body').innerHTML=`<div class="fx-empty"><span class="material-icons">error_outline</span>${esc(e.message)}</div>`;}
 }
