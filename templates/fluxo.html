@@ -144,8 +144,9 @@
       <div class="sb-row"><div class="sb-lbl">Até</div><input type="date" class="sb-date" id="dt-fim"/></div>
       <div><div class="sb-lbl">Agrupar por</div><select class="sb-select" id="sel-grupo" onchange="render()"><option value="D">Dia</option><option value="S">Semana</option><option value="M" selected>Mês</option></select></div>
     </div>
-    <div class="sb-group">Contas bancárias <a onclick="todasContas()">todas</a></div>
-    <div id="contas-list" style="padding:0 6px;display:flex;flex-direction:column;gap:4px"><div style="font-size:11px;color:rgba(255,255,255,.4);padding:8px">Selecione uma empresa</div></div>
+    <!-- Filtro de contas bancarias oculto nesta versao (sem filtro = todas as contas) -->
+    <div class="sb-group" style="display:none">Contas bancárias <a onclick="todasContas()">todas</a></div>
+    <div id="contas-list" style="display:none;padding:0 6px;flex-direction:column;gap:4px"><div style="font-size:11px;color:rgba(255,255,255,.4);padding:8px">Selecione uma empresa</div></div>
     <div class="sb-group">Exibição</div>
     <div class="sb-filters" style="gap:0">
       <div class="sb-opt on" id="opt-trf" onclick="toggleOpt('trf')"><span class="material-icons">check_box</span>Transferências entre contas</div>
